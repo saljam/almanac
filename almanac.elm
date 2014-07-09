@@ -99,8 +99,8 @@ clock time date phi long =
   let
     at f = f date (phi, long)
   in
-    collage 400 400 <| [ filled    lightGrey   (ngon 24 radius)
-                       , outlined (solid grey) (ngon 24 radius)
+    collage 400 400 <| [ filled    lightGrey   (circle radius)
+                       , outlined (solid grey) (circle radius)
                        -- morning
                        , marker grey     radius <| at civilDown
                        , marker grey     radius <| at nauticalDown

@@ -97,7 +97,7 @@ drawNum n =
   in
     move (r * cos a, r * sin a) <| toForm <| plainText <| show n
 
-clock time date phi long =
+clock date phi long =
   let
     at f = f date (phi, long)
   in
@@ -115,25 +115,20 @@ clock time date phi long =
                        , marker charcoal radius <| at astroDusk
                        -- noon
                        , marker lightOrange radius <| (at sunset + at sunrise)/2
-                       -- time
-                       , hand orange   100  time
-                       , hand charcoal 100 (time/60)
-                       , hand charcoal 60  (time/1440)
                        ] ++ map drawNum [0..23]
 
 dateIn = input <| Field.Content "25 Oct 1998" (Field.Selection 0 0 Field.Forward)
 phiIn = input <| Field.Content "52.5" (Field.Selection 0 0 Field.Forward)
 longIn = input <| Field.Content "-1.9167" (Field.Selection 0 0 Field.Forward)
 
--- Good old map. Sorry about the notation.
+-- Plain old map. Sorry about the stupod notation.
 (><>) : (a -> b) -> Maybe a -> Maybe b
 (><>) f m = maybe Nothing (\x -> Just (f x)) m
 
--- The fish operator. Like a fold which just applys.
 (>-<>) : Maybe (a->b) -> Maybe a -> Maybe b
 (>-<>) m fm = maybe Nothing (\x -> x ><> fm) m
 
-scene dateC phiC longC t = flow down
+scene dateC phiC longC = flow down
           [ flow right
             [ container 120 36 midLeft <| plainText "date"
             , container 220 36 midLeft <| size 190 26 <|
@@ -147,12 +142,12 @@ scene dateC phiC longC t = flow down
               Field.field Field.defaultStyle longIn.handle id "-1.9167" longC
             ]
           , maybe (plainText "oops, bad input") id
-              (clock t ><> (Date.read dateC.string)
-                       >-<> (String.toFloat phiC.string)
-                       >-<> (String.toFloat longC.string))
+              (clock ><> (Date.read dateC.string)
+                     >-<> (String.toFloat phiC.string)
+                     >-<> (String.toFloat longC.string))
           , [markdown|
 [src](https://github.com/saljam/almanac)
 |]
           ]
 
-main = scene <~ dateIn.signal ~ phiIn.signal ~ longIn.signal ~ (every second)
+main = scene <~ dateIn.signal ~ phiIn.signal ~ longIn.signal

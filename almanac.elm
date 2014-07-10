@@ -1,3 +1,5 @@
+module Almanac where
+
 import List
 import Date
 import Graphics.Input (Input, input)
@@ -148,6 +150,9 @@ scene dateC phiC longC t = flow down
               (clock t ><> (Date.read dateC.string)
                        >-<> (String.toFloat phiC.string)
                        >-<> (String.toFloat longC.string))
+          , [markdown|
+[src](https://github.com/saljam/almanac)
+|]
           ]
 
 main = scene <~ dateIn.signal ~ phiIn.signal ~ longIn.signal ~ (every second)

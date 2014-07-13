@@ -1,0 +1,44 @@
+<html>
+
+<head>
+<title>Sun Clock</title>
+<script type="text/javascript" src="elm-runtime.js"></script>
+<script type="text/javascript" src="Almanac.js"></script>
+</head>
+
+<body>
+date:
+<input type="date" id="date" name="date" value="1989-12-15">
+location:
+<input type="number" id="lat" name="lat" value="24.679094">
+<input type="number" id="long" name="long" value="46.726313">
+
+<div id="clock" style="width:50%; height:400px;"></div>
+
+Times are in UTC, because I'm lazy.
+
+<footer><a href="https://github.com/saljam/almanac">src</a></footer>
+
+</body>
+
+<script type="text/javascript">
+var date = document.getElementById('date')
+var lat = document.getElementById('lat')
+var long = document.getElementById('long')
+
+var almanac = Elm.embed(Elm.Almanac,
+	document.getElementById('clock'),
+	{ dateIn: date.value, phiIn: lat.value, longIn: long.value });
+
+date.addEventListener('change', function(e) {
+	almanac.ports.dateIn.send(date.value)
+});
+lat.addEventListener('change', function(e) {
+	almanac.ports.phiIn.send(lat.value)
+});
+long.addEventListener('change', function(e) {
+	almanac.ports.longIn.send(long.value)
+});
+</script>
+
+</html>

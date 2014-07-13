@@ -97,7 +97,7 @@ drawNum n =
   in
     move (r * cos a, r * sin a) <| toForm <| plainText <| show n
 
-clock date phi long =
+clock time date phi long =
   let
     at f = f date (phi, long)
   in
@@ -115,39 +115,25 @@ clock date phi long =
                        , marker charcoal radius <| at astroDusk
                        -- noon
                        , marker lightOrange radius <| (at sunset + at sunrise)/2
+                       -- time
+                       , hand orange   100  time
+                       , hand charcoal 100 (time/60)
+                       , hand charcoal 60  (time/1440)
                        ] ++ map drawNum [0..23]
 
-dateIn = input <| Field.Content "25 Oct 1998" (Field.Selection 0 0 Field.Forward)
-phiIn = input <| Field.Content "52.5" (Field.Selection 0 0 Field.Forward)
-longIn = input <| Field.Content "-1.9167" (Field.Selection 0 0 Field.Forward)
-
--- Plain old map. Sorry about the stupod notation.
 (><>) : (a -> b) -> Maybe a -> Maybe b
 (><>) f m = maybe Nothing (\x -> Just (f x)) m
 
 (>-<>) : Maybe (a->b) -> Maybe a -> Maybe b
 (>-<>) m fm = maybe Nothing (\x -> x ><> fm) m
 
-scene dateC phiC longC = flow down
-          [ flow right
-            [ container 120 36 midLeft <| plainText "date"
-            , container 220 36 midLeft <| size 190 26 <|
-              Field.field Field.defaultStyle dateIn.handle id "25 Oct 1998" dateC
-            ]
-          , flow right
-            [ container 120 36 midLeft <| plainText "coordinates"
-            , container 100 36 midLeft <| size 90 26 <|
-              Field.field Field.defaultStyle phiIn.handle id "52.5" phiC
-            , container 100 36 midLeft <| size 90 26 <|
-              Field.field Field.defaultStyle longIn.handle id "-1.9167" longC
-            ]
-          , maybe (plainText "oops, bad input") id
-              (clock ><> (Date.read dateC.string)
-                     >-<> (String.toFloat phiC.string)
-                     >-<> (String.toFloat longC.string))
-          , [markdown|
-[src](https://github.com/saljam/almanac)
-|]
-          ]
+scene date phi long time = maybe (plainText "oops, bad input") id
+              (clock time ><> (Date.read date)
+                          >-<> (String.toFloat phi)
+                          >-<> (String.toFloat long))
 
-main = scene <~ dateIn.signal ~ phiIn.signal ~ longIn.signal
+port dateIn : Signal String
+port phiIn : Signal String
+port longIn : Signal String
+
+main = scene <~ dateIn ~ phiIn ~ longIn ~ (every second)

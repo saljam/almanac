@@ -35,11 +35,11 @@ Elm.Almanac.make = function (_elm) {
    var _op = {};
    var longIn = Native.Ports.portIn("longIn",
    Native.Ports.incomingSignal(function (v) {
-      return typeof v === "string" || typeof v === "object" && v instanceof String ? v : _E.raise("invalid input, expecting JSString but got " + v);
+      return typeof v === "number" ? v : _E.raise("invalid input, expecting JSNumber but got " + v);
    }));
    var phiIn = Native.Ports.portIn("phiIn",
    Native.Ports.incomingSignal(function (v) {
-      return typeof v === "string" || typeof v === "object" && v instanceof String ? v : _E.raise("invalid input, expecting JSString but got " + v);
+      return typeof v === "number" ? v : _E.raise("invalid input, expecting JSNumber but got " + v);
    }));
    var dateIn = Native.Ports.portIn("dateIn",
    Native.Ports.incomingSignal(function (v) {
@@ -221,9 +221,9 @@ Elm.Almanac.make = function (_elm) {
    -1,
    -6);
    var clock = F4(function (time,
-   date,
    phi,
-   $long) {
+   $long,
+   date) {
       return function () {
          var at = function (f) {
             return A2(f,
@@ -287,14 +287,8 @@ Elm.Almanac.make = function (_elm) {
    time) {
       return A3(Maybe.maybe,
       Text.plainText("oops, bad input"),
-      Basics.id,
-      A2(_op[">-<>"],
-      A2(_op[">-<>"],
-      A2(_op["><>"],
-      clock(time),
-      Date.read(date)),
-      String.toFloat(phi)),
-      String.toFloat($long)));
+      A3(clock,time,phi,$long),
+      Date.read(date));
    });
    var main = A2(Signal._op["~"],
    A2(Signal._op["~"],

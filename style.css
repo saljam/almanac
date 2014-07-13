@@ -61,16 +61,11 @@ html {
 
 body {
 	font: small/1.556 Palatino, Amiri, serif;
-	max-width: 40em;
+	max-width: 80em;
 	margin: auto;
 	padding: 1em;
 	background: #fff;
 	color: #000;
-}
-
-.idx {
-	max-width: 28em;
-	text-align: justify;
 }
 
 .ar {
@@ -249,4 +244,13 @@ hr.ivy:after {
 	-webkit-transform: scaleX(-1);
 	transform: scaleX(-1);
 	filter: FlipH;
+}
+
+input {
+	border: 1px solid #ccc;
+	height: 18px;
+}
+
+.pane {
+	display: inline-block;
 }

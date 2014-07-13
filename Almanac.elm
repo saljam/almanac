@@ -97,7 +97,7 @@ drawNum n =
   in
     move (r * cos a, r * sin a) <| toForm <| plainText <| show n
 
-clock time date phi long =
+clock time phi long date =
   let
     at f = f date (phi, long)
   in
@@ -127,13 +127,11 @@ clock time date phi long =
 (>-<>) : Maybe (a->b) -> Maybe a -> Maybe b
 (>-<>) m fm = maybe Nothing (\x -> x ><> fm) m
 
-scene date phi long time = maybe (plainText "oops, bad input") id
-              (clock time ><> (Date.read date)
-                          >-<> (String.toFloat phi)
-                          >-<> (String.toFloat long))
+scene date phi long time = maybe (plainText "oops, bad input") (clock time phi long)
+                                 (Date.read date)
 
 port dateIn : Signal String
-port phiIn : Signal String
-port longIn : Signal String
+port phiIn : Signal Float
+port longIn : Signal Float
 
 main = scene <~ dateIn ~ phiIn ~ longIn ~ (every second)

@@ -54,15 +54,16 @@ e t = -(ec t) + 2.466 * (dsin (2*(lambda t))) - 0.053 * (dsin(4*(lambda t)))
 -- greenwhich hour angle of the sun
 gha t ut = ut - 180 + e t
 
-sunEqn ut h dir date loc =
+sunEqn ut h dir date phi long =
   let
-    (phi, long) = loc
     t = (date + ut/360)/36525 -- the number of centuries since J2000
     cosc = (dsin(h) - dsin(phi) * dsin(delta t)) / (dcos(phi) * dcos(delta t))
-    correction = dir * acos(cosc) * 180/pi
+    correction = if | cosc > 1  -> 0
+                    | cosc < -1 -> 180
+                    | otherwise -> dir * acos(cosc) * 180/pi
     ut' = ut - (long + gha t ut  +  correction)
   in
-    if abs (ut - ut') < 0.01 then ut' else sunEqn ut' h dir date loc
+    if abs (ut - ut') < 0.01 then ut' else sunEqn ut' h dir date phi long
 
 doSunEqn dir h date =
    let
@@ -99,7 +100,7 @@ drawNum n =
 
 clock time phi long date =
   let
-    at f = f date (phi, long)
+    at f = f date phi long
   in
     collage 400 400 <| [ filled    lightGrey   (circle radius)
                        , outlined (solid grey) (circle radius)
@@ -120,12 +121,6 @@ clock time phi long date =
                        , hand charcoal 100 (time/60)
                        , hand charcoal 60  (time/1440)
                        ] ++ map drawNum [0..23]
-
-(><>) : (a -> b) -> Maybe a -> Maybe b
-(><>) f m = maybe Nothing (\x -> Just (f x)) m
-
-(>-<>) : Maybe (a->b) -> Maybe a -> Maybe b
-(>-<>) m fm = maybe Nothing (\x -> x ><> fm) m
 
 scene date phi long time = maybe (plainText "oops, bad input") (clock time phi long)
                                  (Date.read date)

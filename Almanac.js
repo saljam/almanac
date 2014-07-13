@@ -45,23 +45,6 @@ Elm.Almanac.make = function (_elm) {
    Native.Ports.incomingSignal(function (v) {
       return typeof v === "string" || typeof v === "object" && v instanceof String ? v : _E.raise("invalid input, expecting JSString but got " + v);
    }));
-   _op["><>"] = F2(function (f,m) {
-      return A3(Maybe.maybe,
-      Maybe.Nothing,
-      function (x) {
-         return Maybe.Just(f(x));
-      },
-      m);
-   });
-   _op[">-<>"] = F2(function (m,
-   fm) {
-      return A3(Maybe.maybe,
-      Maybe.Nothing,
-      function (x) {
-         return A2(_op["><>"],x,fm);
-      },
-      m);
-   });
    var radius = 120;
    var drawNum = function (n) {
       return function () {
@@ -126,28 +109,29 @@ Elm.Almanac.make = function (_elm) {
    var gha = F2(function (t,ut) {
       return ut - 180 + e(t);
    });
-   var sunEqn = F5(function (ut,
+   var sunEqn = F6(function (ut,
    h,
    dir,
    date,
-   loc) {
+   phi,
+   $long) {
       return function () {
          var t = (date + ut / 360) / 36525;
-         var $ = loc,
-         phi = $._0,
-         $long = $._1;
          var cosc = (dsin(h) - dsin(phi) * dsin(delta(t))) / (dcos(phi) * dcos(delta(t)));
-         var correction = dir * Basics.acos(cosc) * 180 / Basics.pi;
+         var correction = _U.cmp(cosc,
+         1) > 0 ? 0 : _U.cmp(cosc,
+         -1) < 0 ? 180 : dir * Basics.acos(cosc) * 180 / Basics.pi;
          var ut$ = ut - ($long + A2(gha,
          t,
          ut) + correction);
          return _U.cmp(Basics.abs(ut - ut$),
-         1.0e-2) < 0 ? ut$ : A5(sunEqn,
+         1.0e-2) < 0 ? ut$ : A6(sunEqn,
          ut$,
          h,
          dir,
          date,
-         loc);
+         phi,
+         $long);
       }();
    });
    var j2000 = 2451545;
@@ -226,11 +210,7 @@ Elm.Almanac.make = function (_elm) {
    date) {
       return function () {
          var at = function (f) {
-            return A2(f,
-            date,
-            {ctor: "_Tuple2"
-            ,_0: phi
-            ,_1: $long});
+            return A3(f,date,phi,$long);
          };
          return A2(Graphics.Collage.collage,
          400,

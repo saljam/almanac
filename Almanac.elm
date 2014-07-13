@@ -71,26 +71,31 @@ doSunEqn dir h date =
    in
      sunEqn middayEstimate h dir <| toFloat (julian date - j2000)
 
-sunrise = doSunEqn 1 -0.833
-astroDown = doSunEqn 1 -18
-nauticalDown = doSunEqn 1 -12
-civilDown = doSunEqn 1 -6
-sunset = doSunEqn -1 -0.833
-astroDusk = doSunEqn -1 -18
-nauticalDusk = doSunEqn -1 -12
-civilDusk = doSunEqn -1 -6
-
 marker clr len angle =
   let
-    r = degrees <| -angle + 90
+    r = degrees <| 90 - angle
   in
     traced (dotted clr) <| segment (0,0) (len * cos r, len * sin r)
-    
-hand clr len time =
+
+label len angle text =
+  let
+    r = degrees <| 90 - angle
+  in
+    move (len * cos r, len * sin r) <| toForm <| plainText text
+
+hand colr len time =
   let angle = degrees (90 - 6 * inSeconds time)
-  in  traced (solid clr) <| segment (0,0) (len * cos angle, len * sin angle)
+  in  traced (solid colr) <| segment (0,0) (len * cos angle, len * sin angle)
   
-radius = 120
+pieSlice colr radius start end =
+    let
+      o = -start + 90
+      angle = if end < start then end + 360 else end
+      a = 4*angle - 4*start
+      makePoint t = fromPolar (radius, degrees (o - t/4))
+    in filled colr . polygon <| (0,0) :: map makePoint[ 0 .. a ]
+
+radius = 180
 drawNum n =
   let
     a = turns <| -n/24 + 0.25
@@ -98,27 +103,51 @@ drawNum n =
   in
     move (r * cos a, r * sin a) <| toForm <| plainText <| show n
 
+timeAt angle =
+  let
+    h = angle * 24 / 360
+  in show (floor h)
+
 clock time phi long date =
   let
-    at f = f date phi long
-  in
-    collage 400 400 <| [ filled    lightGrey   (circle radius)
+    sunrise = doSunEqn 1 -0.833 date phi long
+    astroDown = doSunEqn 1 -18 date phi long
+    nauticalDown = doSunEqn 1 -12 date phi long
+    civilDown = doSunEqn 1 -6 date phi long
+    sunset = doSunEqn -1 -0.833 date phi long
+    astroDusk = doSunEqn -1 -18 date phi long
+    nauticalDusk = doSunEqn -1 -12 date phi long
+    civilDusk = doSunEqn -1 -6 date phi long
+    noon = (sunset + sunrise)/2
+  in  collage 400 400 <| 
+                      [ filled (rgb 18 62 124)   (circle radius)
                        , outlined (solid grey) (circle radius)
+                      --] ++ if 
+                       -- night
+                       , pieSlice (rgb 86 137 202)    radius astroDown sunrise
+                       , pieSlice (rgb 86 137 202)    radius sunset astroDusk
+                       , pieSlice (rgb 218 237 245)   radius sunrise sunset
                        -- morning
-                       , marker grey     radius <| at civilDown
-                       , marker grey     radius <| at nauticalDown
-                       , marker orange   radius <| at sunrise
-                       , marker charcoal radius <| at astroDown
+                       , marker grey     radius civilDown
+                       , marker grey     radius nauticalDown
+                       , marker orange   radius sunrise
+                       , marker charcoal radius astroDown
                        -- evening
-                       , marker grey     radius <| at nauticalDusk
-                       , marker grey     radius <| at civilDusk
-                       , marker orange   radius <| at sunset
-                       , marker charcoal radius <| at astroDusk
+                       , marker grey     radius nauticalDusk
+                       , marker grey     radius civilDusk
+                       , marker orange   radius sunset
+                       , marker charcoal radius astroDusk
                        -- noon
-                       , marker lightOrange radius <| (at sunset + at sunrise)/2
+                       , marker lightOrange radius <| noon
+                       -- labels
+                       , label           radius sunset <| "sunset " ++ timeAt sunset
+                       , label           radius sunrise <| "sunrise " ++ timeAt sunrise
+                       , label           radius noon <| "noon " ++ timeAt noon
+                       , label           radius astroDusk <| "dusk " ++ timeAt astroDusk
+                       , label           radius astroDown <| "down " ++ timeAt astroDown
                        -- time
-                       , hand orange   100  time
-                       , hand charcoal 100 (time/60)
+                       --, hand orange   100  time
+                       --, hand charcoal 100 (time/60)
                        , hand charcoal 60  (time/1440)
                        ] ++ map drawNum [0..23]
 

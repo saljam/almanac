@@ -45,7 +45,13 @@ Elm.Almanac.make = function (_elm) {
    Native.Ports.incomingSignal(function (v) {
       return typeof v === "string" || typeof v === "object" && v instanceof String ? v : _E.raise("invalid input, expecting JSString but got " + v);
    }));
-   var radius = 120;
+   var timeAt = function (angle) {
+      return function () {
+         var h = angle * 24 / 360;
+         return String.show(Basics.floor(h));
+      }();
+   };
+   var radius = 180;
    var drawNum = function (n) {
       return function () {
          var r = radius + 8;
@@ -55,23 +61,57 @@ Elm.Almanac.make = function (_elm) {
                                       ,_1: r * Basics.sin(a)})(Graphics.Collage.toForm(Text.plainText(String.show(n))));
       }();
    };
-   var hand = F3(function (clr,
+   var pieSlice = F4(function (colr,
+   radius,
+   start,
+   end) {
+      return function () {
+         var angle = _U.cmp(end,
+         start) < 0 ? end + 360 : end;
+         var a = 4 * angle - 4 * start;
+         var o = 0 - start + 90;
+         var makePoint = function (t) {
+            return Basics.fromPolar({ctor: "_Tuple2"
+                                    ,_0: radius
+                                    ,_1: Basics.degrees(o - t / 4)});
+         };
+         return Graphics.Collage.filled(colr)(Graphics.Collage.polygon({ctor: "::"
+                                                                       ,_0: {ctor: "_Tuple2"
+                                                                            ,_0: 0
+                                                                            ,_1: 0}
+                                                                       ,_1: A2(List.map,
+                                                                       makePoint,
+                                                                       _L.range(0,
+                                                                       a))}));
+      }();
+   });
+   var hand = F3(function (colr,
    len,
    time) {
       return function () {
          var angle = Basics.degrees(90 - 6 * Time.inSeconds(time));
-         return Graphics.Collage.traced(Graphics.Collage.solid(clr))(A2(Graphics.Collage.segment,
+         return Graphics.Collage.traced(Graphics.Collage.solid(colr))(A2(Graphics.Collage.segment,
          {ctor: "_Tuple2",_0: 0,_1: 0},
          {ctor: "_Tuple2"
          ,_0: len * Basics.cos(angle)
          ,_1: len * Basics.sin(angle)}));
       }();
    });
+   var label = F3(function (len,
+   angle,
+   text) {
+      return function () {
+         var r = Basics.degrees(90 - angle);
+         return Graphics.Collage.move({ctor: "_Tuple2"
+                                      ,_0: len * Basics.cos(r)
+                                      ,_1: len * Basics.sin(r)})(Graphics.Collage.toForm(Text.plainText(text)));
+      }();
+   });
    var marker = F3(function (clr,
    len,
    angle) {
       return function () {
-         var r = Basics.degrees(0 - angle + 90);
+         var r = Basics.degrees(90 - angle);
          return Graphics.Collage.traced(Graphics.Collage.dotted(clr))(A2(Graphics.Collage.segment,
          {ctor: "_Tuple2",_0: 0,_1: 0},
          {ctor: "_Tuple2"
@@ -180,78 +220,138 @@ Elm.Almanac.make = function (_elm) {
          dir)(Basics.toFloat(julian(date) - j2000));
       }();
    });
-   var sunrise = A2(doSunEqn,
-   1,
-   -0.833);
-   var astroDown = A2(doSunEqn,
-   1,
-   -18);
-   var nauticalDown = A2(doSunEqn,
-   1,
-   -12);
-   var civilDown = A2(doSunEqn,
-   1,
-   -6);
-   var sunset = A2(doSunEqn,
-   -1,
-   -0.833);
-   var astroDusk = A2(doSunEqn,
-   -1,
-   -18);
-   var nauticalDusk = A2(doSunEqn,
-   -1,
-   -12);
-   var civilDusk = A2(doSunEqn,
-   -1,
-   -6);
    var clock = F4(function (time,
    phi,
    $long,
    date) {
       return function () {
-         var at = function (f) {
-            return A3(f,date,phi,$long);
-         };
+         var civilDusk = A5(doSunEqn,
+         -1,
+         -6,
+         date,
+         phi,
+         $long);
+         var nauticalDusk = A5(doSunEqn,
+         -1,
+         -12,
+         date,
+         phi,
+         $long);
+         var astroDusk = A5(doSunEqn,
+         -1,
+         -18,
+         date,
+         phi,
+         $long);
+         var sunset = A5(doSunEqn,
+         -1,
+         -0.833,
+         date,
+         phi,
+         $long);
+         var civilDown = A5(doSunEqn,
+         1,
+         -6,
+         date,
+         phi,
+         $long);
+         var nauticalDown = A5(doSunEqn,
+         1,
+         -12,
+         date,
+         phi,
+         $long);
+         var astroDown = A5(doSunEqn,
+         1,
+         -18,
+         date,
+         phi,
+         $long);
+         var sunrise = A5(doSunEqn,
+         1,
+         -0.833,
+         date,
+         phi,
+         $long);
+         var noon = (sunset + sunrise) / 2;
          return A2(Graphics.Collage.collage,
          400,
          400)(_L.append(_L.fromArray([A2(Graphics.Collage.filled,
-                                     Color.lightGrey,
+                                     A3(Color.rgb,18,62,124),
                                      Graphics.Collage.circle(radius))
                                      ,A2(Graphics.Collage.outlined,
                                      Graphics.Collage.solid(Color.grey),
                                      Graphics.Collage.circle(radius))
-                                     ,A2(marker,
+                                     ,A4(pieSlice,
+                                     A3(Color.rgb,86,137,202),
+                                     radius,
+                                     astroDown,
+                                     sunrise)
+                                     ,A4(pieSlice,
+                                     A3(Color.rgb,86,137,202),
+                                     radius,
+                                     sunset,
+                                     astroDusk)
+                                     ,A4(pieSlice,
+                                     A3(Color.rgb,218,237,245),
+                                     radius,
+                                     sunrise,
+                                     sunset)
+                                     ,A3(marker,
                                      Color.grey,
-                                     radius)(at(civilDown))
-                                     ,A2(marker,
+                                     radius,
+                                     civilDown)
+                                     ,A3(marker,
                                      Color.grey,
-                                     radius)(at(nauticalDown))
-                                     ,A2(marker,
+                                     radius,
+                                     nauticalDown)
+                                     ,A3(marker,
                                      Color.orange,
-                                     radius)(at(sunrise))
-                                     ,A2(marker,
+                                     radius,
+                                     sunrise)
+                                     ,A3(marker,
                                      Color.charcoal,
-                                     radius)(at(astroDown))
-                                     ,A2(marker,
+                                     radius,
+                                     astroDown)
+                                     ,A3(marker,
                                      Color.grey,
-                                     radius)(at(nauticalDusk))
-                                     ,A2(marker,
+                                     radius,
+                                     nauticalDusk)
+                                     ,A3(marker,
                                      Color.grey,
-                                     radius)(at(civilDusk))
-                                     ,A2(marker,
+                                     radius,
+                                     civilDusk)
+                                     ,A3(marker,
                                      Color.orange,
-                                     radius)(at(sunset))
-                                     ,A2(marker,
+                                     radius,
+                                     sunset)
+                                     ,A3(marker,
                                      Color.charcoal,
-                                     radius)(at(astroDusk))
+                                     radius,
+                                     astroDusk)
                                      ,A2(marker,
                                      Color.lightOrange,
-                                     radius)((at(sunset) + at(sunrise)) / 2)
-                                     ,A3(hand,Color.orange,100,time)
-                                     ,A3(hand,
-                                     Color.charcoal,
-                                     100,
-                                     time / 60)
+                                     radius)(noon)
+                                     ,A2(label,
+                                     radius,
+                                     sunset)(_L.append("sunset ",
+                                     timeAt(sunset)))
+                                     ,A2(label,
+                                     radius,
+                                     sunrise)(_L.append("sunrise ",
+                                     timeAt(sunrise)))
+                                     ,A2(label,
+                                     radius,
+                                     noon)(_L.append("noon ",
+                                     timeAt(noon)))
+                                     ,A2(label,
+                                     radius,
+                                     astroDusk)(_L.append("dusk ",
+                                     timeAt(astroDusk)))
+                                     ,A2(label,
+                                     radius,
+                                     astroDown)(_L.append("down ",
+                                     timeAt(astroDown)))
                                      ,A3(hand,
                                      Color.charcoal,
                                      60,
@@ -294,18 +394,13 @@ Elm.Almanac.make = function (_elm) {
                          ,gha: gha
                          ,sunEqn: sunEqn
                          ,doSunEqn: doSunEqn
-                         ,sunrise: sunrise
-                         ,astroDown: astroDown
-                         ,nauticalDown: nauticalDown
-                         ,civilDown: civilDown
-                         ,sunset: sunset
-                         ,astroDusk: astroDusk
-                         ,nauticalDusk: nauticalDusk
-                         ,civilDusk: civilDusk
                          ,marker: marker
+                         ,label: label
                          ,hand: hand
+                         ,pieSlice: pieSlice
                          ,radius: radius
                          ,drawNum: drawNum
+                         ,timeAt: timeAt
                          ,clock: clock
                          ,scene: scene
                          ,main: main};

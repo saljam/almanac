@@ -38,7 +38,7 @@ var map = L.mapbox.map('map','saljam.iop97588').setView([lat, long], 3);
 var marker = new L.marker([lat, long], {draggable:'true'});
 map.addLayer(marker);
 
-marker.on('dragend', function(event) {
+marker.on('drag', function(event) {
 	var loc = marker.getLatLng();
 	clock.ports.phiIn.send(loc.lat)
 	clock.ports.longIn.send(loc.lng)

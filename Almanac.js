@@ -33,6 +33,10 @@ Elm.Almanac.make = function (_elm) {
    var Text = Elm.Text.make(_elm);
    var Time = Elm.Time.make(_elm);
    var _op = {};
+   var tzOffsetIn = Native.Ports.portIn("tzOffsetIn",
+   Native.Ports.incomingSignal(function (v) {
+      return typeof v === "number" ? v : _E.raise("invalid input, expecting JSNumber but got " + v);
+   }));
    var longIn = Native.Ports.portIn("longIn",
    Native.Ports.incomingSignal(function (v) {
       return typeof v === "number" ? v : _E.raise("invalid input, expecting JSNumber but got " + v);
@@ -51,7 +55,7 @@ Elm.Almanac.make = function (_elm) {
          return String.show(Basics.floor(h));
       }();
    };
-   var radius = 180;
+   var radius = 150;
    var drawNum = function (n) {
       return function () {
          var r = radius + 8;
@@ -83,6 +87,28 @@ Elm.Almanac.make = function (_elm) {
                                                                        makePoint,
                                                                        _L.range(0,
                                                                        a))}));
+      }();
+   });
+   var arrow = F5(function (clr,
+   len,
+   angle,
+   angle2,
+   len2) {
+      return function () {
+         var r2 = Basics.degrees(angle2);
+         var r = Basics.degrees(90 - 6 * angle);
+         var orig = {ctor: "_Tuple2"
+                    ,_0: len * Basics.cos(r)
+                    ,_1: len * Basics.sin(r)};
+         var d1 = {ctor: "_Tuple2"
+                  ,_0: (len + len2) * Basics.cos(r + r2)
+                  ,_1: (len + len2) * Basics.sin(r + r2)};
+         var d2 = {ctor: "_Tuple2"
+                  ,_0: (len + len2) * Basics.cos(r - r2)
+                  ,_1: (len + len2) * Basics.sin(r - r2)};
+         return Graphics.Collage.filled(clr)(Graphics.Collage.polygon(_L.fromArray([orig
+                                                                                   ,d1
+                                                                                   ,d2])));
       }();
    });
    var hand = F3(function (colr,
@@ -220,54 +246,55 @@ Elm.Almanac.make = function (_elm) {
          dir)(Basics.toFloat(julian(date) - j2000));
       }();
    });
-   var clock = F4(function (time,
+   var clock = F5(function (time,
+   tzAngle,
    phi,
    $long,
    date) {
       return function () {
-         var civilDusk = A5(doSunEqn,
+         var civilDusk = tzAngle + A5(doSunEqn,
          -1,
          -6,
          date,
          phi,
          $long);
-         var nauticalDusk = A5(doSunEqn,
+         var nauticalDusk = tzAngle + A5(doSunEqn,
          -1,
          -12,
          date,
          phi,
          $long);
-         var astroDusk = A5(doSunEqn,
+         var astroDusk = tzAngle + A5(doSunEqn,
          -1,
          -18,
          date,
          phi,
          $long);
-         var sunset = A5(doSunEqn,
+         var sunset = tzAngle + A5(doSunEqn,
          -1,
          -0.833,
          date,
          phi,
          $long);
-         var civilDown = A5(doSunEqn,
+         var civilDown = tzAngle + A5(doSunEqn,
          1,
          -6,
          date,
          phi,
          $long);
-         var nauticalDown = A5(doSunEqn,
+         var nauticalDown = tzAngle + A5(doSunEqn,
          1,
          -12,
          date,
          phi,
          $long);
-         var astroDown = A5(doSunEqn,
+         var astroDown = tzAngle + A5(doSunEqn,
          1,
          -18,
          date,
          phi,
          $long);
-         var sunrise = A5(doSunEqn,
+         var sunrise = tzAngle + A5(doSunEqn,
          1,
          -0.833,
          date,
@@ -352,25 +379,33 @@ Elm.Almanac.make = function (_elm) {
                                      radius,
                                      astroDown)(_L.append("down ",
                                      timeAt(astroDown)))
-                                     ,A3(hand,
-                                     Color.charcoal,
-                                     60,
-                                     time / 1440)]),
+                                     ,A5(arrow,
+                                     A3(Color.rgb,86,137,202),
+                                     radius,
+                                     time / 1440,
+                                     3,
+                                     30)]),
          A2(List.map,
          drawNum,
          _L.range(0,23))));
       }();
    });
-   var scene = F4(function (date,
+   var scene = F5(function (date,
    phi,
    $long,
+   tz,
    time) {
       return A3(Maybe.maybe,
       Text.plainText("oops, bad input"),
-      A3(clock,time,phi,$long),
+      A4(clock,
+      Time.inSeconds(time) + Basics.toFloat(tz),
+      360 * Basics.toFloat(tz) / (24 * 60 * 60),
+      phi,
+      $long),
       Date.read(date));
    });
    var main = A2(Signal._op["~"],
+   A2(Signal._op["~"],
    A2(Signal._op["~"],
    A2(Signal._op["~"],
    A2(Signal._op["<~"],
@@ -378,6 +413,7 @@ Elm.Almanac.make = function (_elm) {
    dateIn),
    phiIn),
    longIn),
+   tzOffsetIn),
    Time.every(Time.second));
    _elm.Almanac.values = {_op: _op
                          ,julian: julian
@@ -397,6 +433,7 @@ Elm.Almanac.make = function (_elm) {
                          ,marker: marker
                          ,label: label
                          ,hand: hand
+                         ,arrow: arrow
                          ,pieSlice: pieSlice
                          ,radius: radius
                          ,drawNum: drawNum

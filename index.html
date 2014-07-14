@@ -3,6 +3,7 @@
 <meta charset="utf-8">
 <title>Almanac</title>
 <link rel="stylesheet" href="style.css">
+<script type="text/javascript" src="jquery-2.1.1.min.js"></script>
 <script type="text/javascript" src="elm-runtime.js"></script>
 <script type="text/javascript" src="Almanac.js"></script>
 <script src='https://api.tiles.mapbox.com/mapbox.js/v1.6.4/mapbox.js'></script>
@@ -23,7 +24,7 @@ date: <input type="date" id="date" name="date" value="1989-12-15">
 </body>
 
 <script type="text/javascript">
-var date = document.getElementById('date');
+var date = $('#date')[0];
 var lat = 24.6;
 var long = 46.7;
 
@@ -31,26 +32,45 @@ date.value = (new Date()).toJSON().slice(0,10);;
 
 var clock = Elm.embed(Elm.Almanac,
 	document.getElementById('clock'),
-	{ dateIn: date.value, phiIn: lat, longIn: long });
+	{ dateIn: date.value, phiIn: lat, longIn: long, tzOffsetIn: 0 });
 
 var map = L.mapbox.map('map','saljam.iop97588').setView([lat, long], 3);
 
 var marker = new L.marker([lat, long], {draggable:'true'});
 map.addLayer(marker);
+updateTz();
+
+function updateTz(loc) {
+	var loc = marker.getLatLng();
+	// Get the offset from UTC at the given date.
+	// TODO think about what time of day means.
+	$.get("/zoneoffset",
+		{
+			lat: loc.lat,
+			long: loc.lng,
+			time: +(new Date(date.value)) / 1000
+		},
+		function(data) {
+			clock.ports.tzOffsetIn.send(parseInt(data))
+		});
+}
 
 marker.on('drag', function(event) {
 	var loc = marker.getLatLng();
-	clock.ports.phiIn.send(loc.lat)
-	clock.ports.longIn.send(loc.lng)
+	clock.ports.phiIn.send(loc.lat);
+	clock.ports.longIn.send(loc.lng);
+	updateTz();
 });
 map.on('click', function(e) {
 	marker.setLatLng(e.latlng,{draggable:'true'});
-	clock.ports.phiIn.send(e.latlng.lat)
-	clock.ports.longIn.send(e.latlng.lng)
+	clock.ports.phiIn.send(e.latlng.lat);
+	clock.ports.longIn.send(e.latlng.lng);
+	updateTz();
 });
 
 date.addEventListener('change', function(e) {
-	clock.ports.dateIn.send(date.value)
+	clock.ports.dateIn.send(date.value);
+	updateTz();
 });
 
 </script>

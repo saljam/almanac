@@ -89,7 +89,7 @@ hand colr len time =
   
 arrow clr len angle angle2 len2 =
   let 
-    r = degrees (90 - 6 * inSeconds angle)
+    r = degrees (90 - 6 * angle)
     r2 = degrees <|  angle2
     orig = (len * cos r, len * sin r)
     d1 = ((len+len2)*cos (r+r2),(len+len2)*sin(r+r2))
@@ -106,7 +106,7 @@ pieSlice colr radius start end =
       makePoint t = fromPolar (radius, degrees (o - t/4))
     in filled colr . polygon <| (0,0) :: map makePoint[ 0 .. a ]
 
-radius = 180
+radius = 150
 drawNum n =
   let
     a = turns <| -n/24 + 0.25
@@ -119,16 +119,16 @@ timeAt angle =
     h = angle * 24 / 360
   in show (floor h)
 
-clock time phi long date =
+clock time tzAngle phi long date =
   let
-    sunrise = doSunEqn 1 -0.833 date phi long
-    astroDown = doSunEqn 1 -18 date phi long
-    nauticalDown = doSunEqn 1 -12 date phi long
-    civilDown = doSunEqn 1 -6 date phi long
-    sunset = doSunEqn -1 -0.833 date phi long
-    astroDusk = doSunEqn -1 -18 date phi long
-    nauticalDusk = doSunEqn -1 -12 date phi long
-    civilDusk = doSunEqn -1 -6 date phi long
+    sunrise = tzAngle + doSunEqn 1 -0.833 date phi long
+    astroDown = tzAngle + doSunEqn 1 -18 date phi long
+    nauticalDown = tzAngle + doSunEqn 1 -12 date phi long
+    civilDown = tzAngle + doSunEqn 1 -6 date phi long
+    sunset = tzAngle + doSunEqn -1 -0.833 date phi long
+    astroDusk = tzAngle + doSunEqn -1 -18 date phi long
+    nauticalDusk = tzAngle + doSunEqn -1 -12 date phi long
+    civilDusk = tzAngle + doSunEqn -1 -6 date phi long
     noon = (sunset + sunrise)/2
   in  collage 400 400 <| 
                       [ filled (rgb 18 62 124)   (circle radius)
@@ -162,11 +162,13 @@ clock time phi long date =
                        , arrow (rgb 86 137 202) radius  (time/1440) 3 30
                        ] ++ map drawNum [0..23]
 
-scene date phi long time = maybe (plainText "oops, bad input") (clock time phi long)
-                                 (Date.read date)
+scene date phi long tz time = maybe (plainText "oops, bad input")
+                                    (clock ((inSeconds time)+(toFloat tz)) (360 * (toFloat tz) / (24*60*60)) phi long)
+                                    (Date.read date)
 
 port dateIn : Signal String
 port phiIn : Signal Float
 port longIn : Signal Float
+port tzOffsetIn : Signal Int
 
-main = scene <~ dateIn ~ phiIn ~ longIn ~ (every second)
+main = scene <~ dateIn ~ phiIn ~ longIn ~ tzOffsetIn ~ (every second)

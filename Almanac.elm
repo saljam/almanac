@@ -87,6 +87,17 @@ hand colr len time =
   let angle = degrees (90 - 6 * inSeconds time)
   in  traced (solid colr) <| segment (0,0) (len * cos angle, len * sin angle)
   
+arrow clr len angle angle2 len2 =
+  let 
+    r = degrees (90 - 6 * inSeconds angle)
+    r2 = degrees <|  angle2
+    orig = (len * cos r, len * sin r)
+    d1 = ((len+len2)*cos (r+r2),(len+len2)*sin(r+r2))
+    d2 = ((len+len2)*cos (r-r2),(len+len2)*sin(r-r2))
+  in
+    filled (clr) <| polygon [orig,d1,d2]
+
+
 pieSlice colr radius start end =
     let
       o = -start + 90
@@ -148,7 +159,7 @@ clock time phi long date =
                        -- time
                        --, hand orange   100  time
                        --, hand charcoal 100 (time/60)
-                       , hand charcoal 60  (time/1440)
+                       , arrow (rgb 86 137 202) radius  (time/1440) 3 30
                        ] ++ map drawNum [0..23]
 
 scene date phi long time = maybe (plainText "oops, bad input") (clock time phi long)

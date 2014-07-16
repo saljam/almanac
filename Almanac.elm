@@ -91,14 +91,13 @@ hand colr len time =
   
 arrow clr len angle angle2 len2 =
   let 
-    r = degrees (90 - 6 * angle)
+    r = turns (0.25 - angle)
     r2 = degrees <|  angle2
     orig = (len * cos r, len * sin r)
     d1 = ((len+len2)*cos (r+r2),(len+len2)*sin(r+r2))
     d2 = ((len+len2)*cos (r-r2),(len+len2)*sin(r-r2))
   in
     filled (clr) <| polygon [orig,d1,d2]
-
 
 pieSlice colr radius start end =
     let
@@ -119,7 +118,8 @@ drawNum n =
 timeAt angle =
   let
     h = angle * 24 / 360
-  in show (floor h)
+    m = (h - toFloat (floor h)) * 60
+  in show (floor h) ++ ":" ++ show (floor m)
 
 clock time tzAngle phi long date =
   let
@@ -132,6 +132,7 @@ clock time tzAngle phi long date =
     nauticalDusk = tzAngle + doSunEqn -1 -12 date phi long
     civilDusk = tzAngle + doSunEqn -1 -6 date phi long
     noon = (sunset + sunrise)/2
+    t = toFloat (rem (floor time) 86400)
   in collage 500 500 <| 
        [ if not (sunrise < sunset) && (sunrise < 90) then
            filled (rgb 218 237 245)   (circle radius)
@@ -171,8 +172,8 @@ clock time tzAngle phi long date =
        , label           radius noon <| "noon " ++ timeAt noon
        --, hand orange   100  time
        --, hand charcoal 100 (time/60)
-       , arrow (rgb 86 137 202) radius  (time/1440) 3 30
-       , label  (radius+20) (6*time/1440) <| "now " --++ timeAt astroDusk
+       , arrow (rgb 86 137 202) radius  (t/86400) 3 30
+       , label  (radius+25) (360 * t/86400) <| timeAt (360 * t/86400)
        ] ++ map drawNum [0..23]
 
 scene date phi long tz time = maybe (plainText "oops, bad input")

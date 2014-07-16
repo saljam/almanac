@@ -52,7 +52,10 @@ Elm.Almanac.make = function (_elm) {
    var timeAt = function (angle) {
       return function () {
          var h = angle * 24 / 360;
-         return String.show(Basics.floor(h));
+         var m = (h - Basics.toFloat(Basics.floor(h))) * 60;
+         return _L.append(String.show(Basics.floor(h)),
+         _L.append(":",
+         String.show(Basics.floor(m))));
       }();
    };
    var radius = 150;
@@ -96,7 +99,7 @@ Elm.Almanac.make = function (_elm) {
    len2) {
       return function () {
          var r2 = Basics.degrees(angle2);
-         var r = Basics.degrees(90 - 6 * angle);
+         var r = Basics.turns(0.25 - angle);
          var orig = {ctor: "_Tuple2"
                     ,_0: len * Basics.cos(r)
                     ,_1: len * Basics.sin(r)};
@@ -255,6 +258,9 @@ Elm.Almanac.make = function (_elm) {
    $long,
    date) {
       return function () {
+         var t = Basics.toFloat(A2(Basics.rem,
+         Basics.floor(time),
+         86400));
          var civilDusk = tzAngle + A5(doSunEqn,
          -1,
          -6,
@@ -393,12 +399,13 @@ Elm.Almanac.make = function (_elm) {
                                 ,A5(arrow,
                                 A3(Color.rgb,86,137,202),
                                 radius,
-                                time / 1440,
+                                t / 86400,
                                 3,
                                 30)
                                 ,A2(label,
                                 radius + 20,
-                                6 * time / 1440)("now ")]),
+                                360 * t / 86400)(_L.append("now ",
+                                timeAt(360 * t / 86400)))]),
          A2(List.map,
          drawNum,
          _L.range(0,23)))))))));

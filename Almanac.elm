@@ -79,9 +79,11 @@ marker clr len angle =
 
 label len angle text =
   let
-    r = degrees <| 90 - angle
+    a = degrees <| 90 - angle
+    ra = if angle < 180 then a else degrees 180 + a
+    l = len + 40
   in
-    move (len * cos r, len * sin r) <| toForm <| plainText text
+    rotate ra <| move (l * cos a, l * sin a) <| toForm <| plainText text
 
 hand colr len time =
   let angle = degrees (90 - 6 * inSeconds time)
@@ -130,7 +132,7 @@ clock time tzAngle phi long date =
     nauticalDusk = tzAngle + doSunEqn -1 -12 date phi long
     civilDusk = tzAngle + doSunEqn -1 -6 date phi long
     noon = (sunset + sunrise)/2
-  in collage 400 400 <| 
+  in collage 500 500 <| 
        [ if not (sunrise < sunset) && (sunrise < 90) then
            filled (rgb 218 237 245)   (circle radius)
          else filled (rgb 18 62 124)   (circle radius)
@@ -170,6 +172,7 @@ clock time tzAngle phi long date =
        --, hand orange   100  time
        --, hand charcoal 100 (time/60)
        , arrow (rgb 86 137 202) radius  (time/1440) 3 30
+       , label  (radius+20) (6*time/1440) <| "now " --++ timeAt astroDusk
        ] ++ map drawNum [0..23]
 
 scene date phi long tz time = maybe (plainText "oops, bad input")

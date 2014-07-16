@@ -173,7 +173,7 @@ clock time tzAngle phi long date =
        --, hand orange   100  time
        --, hand charcoal 100 (time/60)
        , arrow (rgb 86 137 202) radius  (t/86400) 3 30
-       , label  (radius+25) (360 * t/86400) <| timeAt (360 * t/86400)
+       , label  (radius+15) (360 * t/86400) <| timeAt (360 * t/86400)
        ] ++ map drawNum [0..23]
 
 scene date phi long tz time = maybe (plainText "oops, bad input")

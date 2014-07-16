@@ -403,9 +403,8 @@ Elm.Almanac.make = function (_elm) {
                                 3,
                                 30)
                                 ,A2(label,
-                                radius + 20,
-                                360 * t / 86400)(_L.append("now ",
-                                timeAt(360 * t / 86400)))]),
+                                radius + 15,
+                                360 * t / 86400)(timeAt(360 * t / 86400))]),
          A2(List.map,
          drawNum,
          _L.range(0,23)))))))));

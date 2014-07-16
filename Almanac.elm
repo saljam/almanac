@@ -130,48 +130,47 @@ clock time tzAngle phi long date =
     nauticalDusk = tzAngle + doSunEqn -1 -12 date phi long
     civilDusk = tzAngle + doSunEqn -1 -6 date phi long
     noon = (sunset + sunrise)/2
-  in flow down [ collage 400 400 <| 
-                      [ if not (sunrise < sunset) && (sunrise < 90) then
-                         filled (rgb 218 237 245)   (circle radius)
-                       else
-                         filled (rgb 18 62 124)   (circle radius)
-                       , outlined (solid grey) (circle radius)
-                       -- night
-                       , pieSlice (rgb 86 137 202)    radius astroDown sunrise
-                       , pieSlice (rgb 86 137 202)    radius sunset astroDusk
-                       -- morning
-                       ] ++ (
-                         if sunrise < sunset then
-                         [ pieSlice (rgb 218 237 245)   radius sunrise sunset
-                         , marker orange   radius sunrise
-                         , label           radius sunrise <| "sunrise " ++ timeAt sunrise 
-                         , marker orange   radius sunset
-                         , label           radius sunset <| "sunset " ++ timeAt sunset
-                         ] else []
-                       ) ++ (
-                         if civilDown < civilDusk then
-                         [ marker grey     radius civilDown
-                         , marker grey     radius civilDusk
-                         ] else []
-                       ) ++ (
-                         if astroDown < astroDusk then
-                         [ marker grey     radius astroDown
-                         , marker grey     radius astroDusk
-                         , label           radius astroDusk <| "dusk " ++ timeAt astroDusk
-                         , label           radius astroDown <| "down " ++ timeAt astroDown
-                         ] else []
-                       ) ++ (
-                         if nauticalDown < nauticalDusk then
-                         [ marker grey     radius nauticalDown
-                         , marker grey     radius nauticalDusk
-                         ] else []
-                       ) ++
-                       [ marker lightOrange radius <| noon
-                       , label           radius noon <| "noon " ++ timeAt noon
-                       --, hand orange   100  time
-                       --, hand charcoal 100 (time/60)
-                       , arrow (rgb 86 137 202) radius  (time/1440) 3 30
-                       ] ++ map drawNum [0..23], asText sunrise, asText sunset]
+  in collage 400 400 <| 
+       [ if not (sunrise < sunset) && (sunrise < 90) then
+           filled (rgb 218 237 245)   (circle radius)
+         else filled (rgb 18 62 124)   (circle radius)
+       , outlined (solid grey) (circle radius)
+       -- night
+       , pieSlice (rgb 86 137 202)    radius astroDown sunrise
+       , pieSlice (rgb 86 137 202)    radius sunset astroDusk
+       -- morning
+       ] ++ (
+       if sunrise < sunset then
+         [ pieSlice (rgb 218 237 245)   radius sunrise sunset
+         , marker orange   radius sunrise
+         , label           radius sunrise <| "sunrise " ++ timeAt sunrise 
+         , marker orange   radius sunset
+         , label           radius sunset <| "sunset " ++ timeAt sunset
+         ] else []
+       ) ++ (
+       if civilDown < civilDusk then
+         [ marker grey     radius civilDown
+         , marker grey     radius civilDusk
+         ] else []
+       ) ++ (
+       if astroDown < astroDusk then
+         [ marker grey     radius astroDown
+         , marker grey     radius astroDusk
+         , label           radius astroDusk <| "dusk " ++ timeAt astroDusk
+         , label           radius astroDown <| "down " ++ timeAt astroDown
+         ] else []
+       ) ++ (
+       if nauticalDown < nauticalDusk then
+         [ marker grey     radius nauticalDown
+         , marker grey     radius nauticalDusk
+         ] else []
+       ) ++
+       [ marker lightOrange radius <| noon
+       , label           radius noon <| "noon " ++ timeAt noon
+       --, hand orange   100  time
+       --, hand charcoal 100 (time/60)
+       , arrow (rgb 86 137 202) radius  (time/1440) 3 30
+       ] ++ map drawNum [0..23]
 
 scene date phi long tz time = maybe (plainText "oops, bad input")
                                     (clock ((inSeconds time)+(toFloat tz)) (360 * (toFloat tz) / (24*60*60)) phi long)

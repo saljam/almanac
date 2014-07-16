@@ -301,93 +301,105 @@ Elm.Almanac.make = function (_elm) {
          phi,
          $long);
          var noon = (sunset + sunrise) / 2;
-         return A2(Graphics.Collage.collage,
-         400,
-         400)(_L.append(_L.fromArray([A2(Graphics.Collage.filled,
-                                     A3(Color.rgb,18,62,124),
-                                     Graphics.Collage.circle(radius))
-                                     ,A2(Graphics.Collage.outlined,
-                                     Graphics.Collage.solid(Color.grey),
-                                     Graphics.Collage.circle(radius))
-                                     ,A4(pieSlice,
-                                     A3(Color.rgb,86,137,202),
-                                     radius,
-                                     astroDown,
-                                     sunrise)
-                                     ,A4(pieSlice,
-                                     A3(Color.rgb,86,137,202),
-                                     radius,
-                                     sunset,
-                                     astroDusk)
-                                     ,A4(pieSlice,
-                                     A3(Color.rgb,218,237,245),
-                                     radius,
-                                     sunrise,
-                                     sunset)
-                                     ,A3(marker,
-                                     Color.grey,
-                                     radius,
-                                     civilDown)
-                                     ,A3(marker,
-                                     Color.grey,
-                                     radius,
-                                     nauticalDown)
-                                     ,A3(marker,
-                                     Color.orange,
-                                     radius,
-                                     sunrise)
-                                     ,A3(marker,
-                                     Color.charcoal,
-                                     radius,
-                                     astroDown)
-                                     ,A3(marker,
-                                     Color.grey,
-                                     radius,
-                                     nauticalDusk)
-                                     ,A3(marker,
-                                     Color.grey,
-                                     radius,
-                                     civilDusk)
-                                     ,A3(marker,
-                                     Color.orange,
-                                     radius,
-                                     sunset)
-                                     ,A3(marker,
-                                     Color.charcoal,
-                                     radius,
-                                     astroDusk)
-                                     ,A2(marker,
-                                     Color.lightOrange,
-                                     radius)(noon)
-                                     ,A2(label,
-                                     radius,
-                                     sunset)(_L.append("sunset ",
-                                     timeAt(sunset)))
-                                     ,A2(label,
-                                     radius,
-                                     sunrise)(_L.append("sunrise ",
-                                     timeAt(sunrise)))
-                                     ,A2(label,
-                                     radius,
-                                     noon)(_L.append("noon ",
-                                     timeAt(noon)))
-                                     ,A2(label,
-                                     radius,
-                                     astroDusk)(_L.append("dusk ",
-                                     timeAt(astroDusk)))
-                                     ,A2(label,
-                                     radius,
-                                     astroDown)(_L.append("down ",
-                                     timeAt(astroDown)))
-                                     ,A5(arrow,
-                                     A3(Color.rgb,86,137,202),
-                                     radius,
-                                     time / 1440,
-                                     3,
-                                     30)]),
-         A2(List.map,
-         drawNum,
-         _L.range(0,23))));
+         return A2(Graphics.Element.flow,
+         Graphics.Element.down,
+         _L.fromArray([A2(Graphics.Collage.collage,
+                      400,
+                      400)(_L.append(_L.fromArray([Basics.not(_U.cmp(sunrise,
+                                                  sunset) < 0) && _U.cmp(sunrise,
+                                                  90) < 0 ? A2(Graphics.Collage.filled,
+                                                  A3(Color.rgb,218,237,245),
+                                                  Graphics.Collage.circle(radius)) : A2(Graphics.Collage.filled,
+                                                  A3(Color.rgb,18,62,124),
+                                                  Graphics.Collage.circle(radius))
+                                                  ,A2(Graphics.Collage.outlined,
+                                                  Graphics.Collage.solid(Color.grey),
+                                                  Graphics.Collage.circle(radius))
+                                                  ,A4(pieSlice,
+                                                  A3(Color.rgb,86,137,202),
+                                                  radius,
+                                                  astroDown,
+                                                  sunrise)
+                                                  ,A4(pieSlice,
+                                                  A3(Color.rgb,86,137,202),
+                                                  radius,
+                                                  sunset,
+                                                  astroDusk)]),
+                      _L.append(_U.cmp(sunrise,
+                      sunset) < 0 ? _L.fromArray([A4(pieSlice,
+                                                 A3(Color.rgb,218,237,245),
+                                                 radius,
+                                                 sunrise,
+                                                 sunset)
+                                                 ,A3(marker,
+                                                 Color.orange,
+                                                 radius,
+                                                 sunrise)
+                                                 ,A2(label,
+                                                 radius,
+                                                 sunrise)(_L.append("sunrise ",
+                                                 timeAt(sunrise)))
+                                                 ,A3(marker,
+                                                 Color.orange,
+                                                 radius,
+                                                 sunset)
+                                                 ,A2(label,
+                                                 radius,
+                                                 sunset)(_L.append("sunset ",
+                                                 timeAt(sunset)))]) : _L.fromArray([]),
+                      _L.append(_U.cmp(civilDown,
+                      civilDusk) < 0 ? _L.fromArray([A3(marker,
+                                                    Color.grey,
+                                                    radius,
+                                                    civilDown)
+                                                    ,A3(marker,
+                                                    Color.grey,
+                                                    radius,
+                                                    civilDusk)]) : _L.fromArray([]),
+                      _L.append(_U.cmp(astroDown,
+                      astroDusk) < 0 ? _L.fromArray([A3(marker,
+                                                    Color.grey,
+                                                    radius,
+                                                    astroDown)
+                                                    ,A3(marker,
+                                                    Color.grey,
+                                                    radius,
+                                                    astroDusk)
+                                                    ,A2(label,
+                                                    radius,
+                                                    astroDusk)(_L.append("dusk ",
+                                                    timeAt(astroDusk)))
+                                                    ,A2(label,
+                                                    radius,
+                                                    astroDown)(_L.append("down ",
+                                                    timeAt(astroDown)))]) : _L.fromArray([]),
+                      _L.append(_U.cmp(nauticalDown,
+                      nauticalDusk) < 0 ? _L.fromArray([A3(marker,
+                                                       Color.grey,
+                                                       radius,
+                                                       nauticalDown)
+                                                       ,A3(marker,
+                                                       Color.grey,
+                                                       radius,
+                                                       nauticalDusk)]) : _L.fromArray([]),
+                      _L.append(_L.fromArray([A2(marker,
+                                             Color.lightOrange,
+                                             radius)(noon)
+                                             ,A2(label,
+                                             radius,
+                                             noon)(_L.append("noon ",
+                                             timeAt(noon)))
+                                             ,A5(arrow,
+                                             A3(Color.rgb,86,137,202),
+                                             radius,
+                                             time / 1440,
+                                             3,
+                                             30)]),
+                      A2(List.map,
+                      drawNum,
+                      _L.range(0,23)))))))))
+                      ,Text.asText(sunrise)
+                      ,Text.asText(sunset)]));
       }();
    });
    var scene = F5(function (date,

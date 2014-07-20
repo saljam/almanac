@@ -44,7 +44,7 @@ function updateTz(loc) {
 	var loc = marker.getLatLng();
 	// Get the offset from UTC at the given date.
 	// TODO think about what time of day means.
-	$.get("/zoneoffset",
+	$.get("zoneoffset",
 		{
 			lat: loc.lat,
 			long: loc.lng,

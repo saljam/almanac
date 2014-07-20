@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 
 var (
 	addr     = flag.String("addr", ":8004", "http address to listen on")
+	slave    = flag.Bool("slave", false, "listen on stdin for a socket")
 	dataRoot = flag.String("data",
 		strings.Split(os.Getenv("GOPATH"), ":")[0]+"/src/github.com/saljam/almanac",
 		"data dir")
@@ -79,9 +81,18 @@ func handleTz(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
-	http.HandleFunc("/timezone", handleTz)
-	http.HandleFunc("/zoneoffset", handleTzOffset)
-	http.Handle("/", http.FileServer(http.Dir(*dataRoot)))
+	http.HandleFunc("/sun/timezone", handleTz)
+	http.HandleFunc("/sun/zoneoffset", handleTzOffset)
+	http.Handle("/sun/", http.StripPrefix("/sun/", http.FileServer(http.Dir(*dataRoot))))
 
-	log.Fatal(http.ListenAndServe(*addr, nil))
+	if *slave {
+		l, err := net.FileListener(os.Stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		os.Stdin.Close()
+		log.Fatal(http.Serve(l, nil))
+	} else {
+		log.Fatal(http.ListenAndServe(*addr, nil))
+	}
 }

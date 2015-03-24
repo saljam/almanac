@@ -2,7 +2,6 @@
 package almanac
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -74,7 +73,6 @@ func handleTz(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
-	flag.Parse()
 	http.HandleFunc("/sun/timezone", handleTz)
 	http.HandleFunc("/sun/zoneoffset", handleTzOffset)
 	statikFS, _ := fs.New()

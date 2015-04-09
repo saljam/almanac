@@ -1,0 +1,26 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Almanac</title>
+<script type="text/javascript" src="elm.js"></script>
+<script src='https://api.tiles.mapbox.com/mapbox.js/v1.6.4/mapbox.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox.js/v1.6.4/mapbox.css' rel='stylesheet' />
+<body>
+<script type="text/javascript">
+var lat = 51.51;
+var long = 0.0;
+var clock = Elm.fullscreen(Elm.Almanac, { latIn: lat, longIn: long});
+var map = L.mapbox.map('map','saljam.iop97588').setView([lat, long], 3);
+var marker = new L.marker([lat, long], {draggable:'true'});
+map.addLayer(marker);
+marker.on('drag', function(event) {
+	var loc = marker.getLatLng();
+	clock.ports.latIn.send(loc.lat);
+	clock.ports.longIn.send(loc.lng);
+});
+map.on('click', function(e) {
+	marker.setLatLng(e.latlng,{draggable:'true'});
+	clock.ports.latIn.send(e.latlng.lat);
+	clock.ports.longIn.send(e.latlng.lng);
+});
+</script>

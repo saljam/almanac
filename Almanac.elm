@@ -201,46 +201,31 @@ timesDiv date lat long =
   div []
       <| List.map (\time -> div [] [ text (toString (time*180/pi)) ]) (times date lat long)
 
-page datestr latstr longstr =
+page datestr lat long =
   let
-    lat = String.toFloat latstr
-    long = String.toFloat longstr
     date = Date.fromString datestr
   in
     div []
-    -- TODO colour fields red when they have invalid input
-    ( [ input [ id "lat"
-          , value latstr
-          , name "lat"
-          , type' "number"
-          , on "input" targetValue (Signal.send latc)
-          ]
-          []
-      , input [ id "long"
-          , value longstr
-          , name "long"
-          , type' "number"
-          , on "input" targetValue (Signal.send longc)
-          ]
-          []
-      , input [ id "date"
-          , value datestr
-          , name "date"
-          , type' "date"
-          , on "input" targetValue (Signal.send datec)
-          ]
-          []
+      [ case date of
+          Ok d      -> fromElement <| clock d lat long
+          otherwise -> p [] [ text "bad date :-/" ]
+      , input [ id "date" -- TODO colour fields red when they have invalid input
+              , value datestr
+              , name "date"
+              , type' "date"
+              , on "input" targetValue (Signal.send datec)
+              ] []
+      , div [ id "map", style [ ("width", "500px"), ("height", "500px") ] ] []
+      , footer [] [ a [ href "https://github.com/saljam/almanac" ] [ text "source" ]
+                  , text " <3"
+                  ]
       ]
-    ++
-      case (date, lat, long) of
-        (Ok x, Ok y, Ok z) -> [ timesDiv x y z, fromElement <| clock x y z ]
-        otherwise -> [ p [] [ text "bad input :(" ] ]
-    )
 
-latc = Signal.channel "51.51"
-longc = Signal.channel "0"
 datec = Signal.channel "2014-12-01"
 
-main = page <~ (Signal.subscribe datec) ~ (Signal.subscribe latc) ~ (Signal.subscribe longc)
+port latIn : Signal.Signal Float
+port longIn : Signal.Signal Float
+
+main = page <~ (Signal.subscribe datec) ~ latIn ~ longIn
 
 -- model ought to be (lat, long, date, tz)

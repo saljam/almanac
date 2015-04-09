@@ -1,10 +1,22 @@
 module Almanac where
 
+import Debug
+
 import List
+import Html (..)
+import Html.Attributes (..)
+import Html.Events (..)
+import Signal
+import Signal ((<~), (~))
+import String
+import Result
+
 import Date
-import Graphics.Input (Input, input)
-import Graphics.Input.Field as Field
-import Graphics.Element as Element
+
+import Graphics.Collage (..)
+import Time
+import Color (..)
+import Text
 
 -- gregorian -> julian day
 julian d =
@@ -27,7 +39,7 @@ julian d =
         else
           Date.year d + 4800
   in
-    Date.day d + div (153*m + 2) 5 + 365 * y + div y 4 - div y 100 + div y 400 - 32045
+    Date.day d + ((153*m + 2) // 5) + 365 * y + (y // 4) - (y // 100) + (y // 400) - 32045
 
 j2000 = 2451545 -- the julian day for J2000
 
@@ -35,154 +47,200 @@ j2000 = 2451545 -- the julian day for J2000
 -- Mostly from http://www.stargazing.net/kepler/sunrise.html# and 
 -- http://en.wikipedia.org/wiki/Sunrise_equation
 
-dsin = sin . degrees
-dcos = cos . degrees
-
 -- mean longitude
 l t = 280.460 + (36000.770 * t)
 -- mean anamoly
-g t = 357.528 + (35999.050 * t)
+g t = degrees <| 357.528 + (35999.050 * t)
 -- eq centre correction
-ec t = 1.915 * dsin(g t) + 0.020 * dsin(2*(g t))
+ec t = 1.915 * sin(g t) + 0.020 * sin(2*(g t))
 -- ecliptic longitude of sun
-lambda t = (l t) + (ec t)
+lambda t = degrees <| (l t) + (ec t)
 -- tilt of earth's axis
-obl t = 23.4393 - 0.0130 * t
+obl t = degrees <| 23.4393 - 0.0130 * t
 -- sun's declination
-delta t = asin(dsin(obl t) * (dsin(lambda t))) *180/pi
-e t = -(ec t) + 2.466 * (dsin (2*(lambda t))) - 0.053 * (dsin(4*(lambda t)))
+delta t = asin(sin(obl t) * (sin(lambda t)))
+e t = degrees <| -(ec t) + 2.466 * (sin (2*(lambda t))) - 0.053 * (sin(4*(lambda t)))
 -- greenwhich hour angle of the sun
-gha t ut = ut - 180 + e t
+gha t ut = ut - pi + e t
 
-sunEqn ut h dir date phi long =
+sunEqn ut h dir date lat long =
   let
     t = (date + ut/360)/36525 -- the number of centuries since J2000
-    cosc = (dsin(h) - dsin(phi) * dsin(delta t)) / (dcos(phi) * dcos(delta t))
+    lat' = degrees lat
+    cosc = (sin(h) - sin(lat') * sin(delta t)) / ((cos lat') * cos (delta t))
     correction = if | cosc > 1  -> 0
-                    | cosc < -1 -> 180
-                    | otherwise -> dir * acos(cosc) * 180/pi
-    ut' = ut - (long + gha t ut  +  correction)
+                    | cosc < -1 -> pi
+                    | otherwise -> dir * acos(cosc)
+    ut' = pi - (degrees long) - (e t) - correction
   in
-    if abs (ut - ut') < 0.01 then ut' else sunEqn ut' h dir date phi long
+    if abs (ut - ut') < 0.01 then ut' else sunEqn ut' h dir date lat long
 
-doSunEqn dir h date =
+type Direction = Morning | Evening
+timeAtSunAngle dir h date =
    let
-      middayEstimate = 180
+      middayEstimate = pi
+      dir' = case dir of
+               Morning ->  1
+               Evening -> -1
+      date' = toFloat <| julian date - j2000
+      h' = degrees h
    in
-     sunEqn middayEstimate h dir <| toFloat (julian date - j2000)
+     sunEqn middayEstimate h' dir' date'
+
+sunrise      = timeAtSunAngle Morning -0.833
+astroDawn    = timeAtSunAngle Morning -18
+nauticalDawn = timeAtSunAngle Morning -12
+civilDawn    = timeAtSunAngle Morning -6
+sunset       = timeAtSunAngle Evening -0.833
+astroDusk    = timeAtSunAngle Evening -18
+nauticalDusk = timeAtSunAngle Evening -12
+civilDusk    = timeAtSunAngle Evening -6
+noon x y z   =
+  let
+    rise = sunrise x y z
+    set = sunset x y z
+    avg = (rise + set)/2
+  in
+    if rise == set && rise < (pi/2) then
+      avg &- pi
+    else
+      avg
+
+--
 
 marker clr len angle =
+    traced (dotted clr) <| segment (0,0) (len * cos angle, len * sin angle)
+
+slice start end =
+    let
+      foo = (Debug.watch "start" <| start) + (Debug.watch "end" <| end)
+      factor = 1000
+      arclength = floor <| (end &- start) * factor
+      makePoint t = fromPolar (radius, (start + (toFloat t)/factor))
+    in
+      if | arclength < 25 -> if (abs start) < pi/2 then circle radius else circle 0
+         | otherwise      -> polygon <| (0,0) :: List.map makePoint [0..arclength]
+
+drawNum n =
   let
-    r = degrees <| 90 - angle
+    a = turns <| -n/24 - 0.25
+    r = radius + 8
   in
-    traced (dotted clr) <| segment (0,0) (len * cos r, len * sin r)
+    move (r * cos a, r * sin a) <| toForm <| Text.plainText <| toString n
 
 label len angle text =
   let
-    a = degrees <| 90 - angle
-    ra = if angle < 180 then a else degrees 180 + a
-    l = len + 40
+    ra = if angle > pi/2 && angle < 3*pi/2 then angle + pi else angle
+    l = len + 50
   in
-    rotate ra <| move (l * cos a, l * sin a) <| toForm <| plainText text
+    rotate ra <| move (l * cos angle, l * sin angle) <| toForm <| Text.plainText text
 
-hand colr len time =
-  let angle = degrees (90 - 6 * inSeconds time)
-  in  traced (solid colr) <| segment (0,0) (len * cos angle, len * sin angle)
-  
-arrow clr len angle angle2 len2 =
-  let 
-    r = turns (0.25 - angle)
-    r2 = degrees <|  angle2
-    orig = (len * cos r, len * sin r)
-    d1 = ((len+len2)*cos (r+r2),(len+len2)*sin(r+r2))
-    d2 = ((len+len2)*cos (r-r2),(len+len2)*sin(r-r2))
-  in
-    filled (clr) <| polygon [orig,d1,d2]
-
-pieSlice colr radius start end =
-    let
-      o = -start + 90
-      angle = if end < start then end + 360 else end
-      a = 4*angle - 4*start
-      makePoint t = fromPolar (radius, degrees (o - t/4))
-    in filled colr . polygon <| (0,0) :: map makePoint[ 0 .. a ]
-
-radius = 150
-drawNum n =
-  let
-    a = turns <| -n/24 + 0.25
-    r = radius + 8
-  in
-    move (r * cos a, r * sin a) <| toForm <| plainText <| show n
+complement = (&-) (3/2 * pi) 
 
 timeAt angle =
   let
-    h = angle * 24 / 360
+    h = (complement angle) * 24 / (2 * pi)
     m = (h - toFloat (floor h)) * 60
-  in show (floor h) ++ ":" ++ show (floor m)
+  in toString (floor h) ++ ":" ++ toString (floor m)
 
-clock time tzAngle phi long date =
+radius = 150
+
+-- we draw things with noon as 0, then rotate to fit the actual angle.
+clockface sunset dusk nauticalDusk civilDusk = group <|
+  [ filled   (rgb 218 237 245)  <| circle radius
+  , filled   (rgb 86 137 202)   <| slice -sunset sunset
+  , filled   (rgb 18 62 124)    <| slice -dusk   dusk
+  , outlined (solid grey)       <| circle radius
+  -- TODO don't print the labels if they're too close together?
+  , marker orange      radius sunset
+  , marker orange      radius -sunset
+  , marker grey        radius civilDusk
+  , marker grey        radius -civilDusk
+  , marker grey        radius nauticalDusk
+  , marker grey        radius -nauticalDusk
+  , marker grey        radius dusk
+  , marker grey        radius -dusk
+  , marker lightOrange radius 0 -- noon
+  -- TODO times are wrong -- we haven't rotated yet.
+  ]
+
+(&-) a1 a2 =
   let
-    sunrise = tzAngle + doSunEqn 1 -0.833 date phi long
-    astroDown = tzAngle + doSunEqn 1 -18 date phi long
-    nauticalDown = tzAngle + doSunEqn 1 -12 date phi long
-    civilDown = tzAngle + doSunEqn 1 -6 date phi long
-    sunset = tzAngle + doSunEqn -1 -0.833 date phi long
-    astroDusk = tzAngle + doSunEqn -1 -18 date phi long
-    nauticalDusk = tzAngle + doSunEqn -1 -12 date phi long
-    civilDusk = tzAngle + doSunEqn -1 -6 date phi long
-    noon = (sunset + sunrise)/2
-    t = toFloat (rem (floor time) 86400)
-  in collage 500 500 <| 
-       [ if not (sunrise < sunset) && (sunrise < 90) then
-           filled (rgb 218 237 245)   (circle radius)
-         else filled (rgb 18 62 124)   (circle radius)
-       , outlined (solid grey) (circle radius)
-       -- night
-       , pieSlice (rgb 86 137 202)    radius astroDown sunrise
-       , pieSlice (rgb 86 137 202)    radius sunset astroDusk
-       -- morning
-       ] ++ (
-       if sunrise < sunset then
-         [ pieSlice (rgb 218 237 245)   radius sunrise sunset
-         , marker orange   radius sunrise
-         , label           radius sunrise <| "sunrise " ++ timeAt sunrise 
-         , marker orange   radius sunset
-         , label           radius sunset <| "sunset " ++ timeAt sunset
-         ] else []
-       ) ++ (
-       if civilDown < civilDusk then
-         [ marker grey     radius civilDown
-         , marker grey     radius civilDusk
-         ] else []
-       ) ++ (
-       if astroDown < astroDusk then
-         [ marker grey     radius astroDown
-         , marker grey     radius astroDusk
-         , label           radius astroDusk <| "dusk " ++ timeAt astroDusk
-         , label           radius astroDown <| "down " ++ timeAt astroDown
-         ] else []
-       ) ++ (
-       if nauticalDown < nauticalDusk then
-         [ marker grey     radius nauticalDown
-         , marker grey     radius nauticalDusk
-         ] else []
-       ) ++
-       [ marker lightOrange radius <| noon
-       , label           radius noon <| "noon " ++ timeAt noon
-       --, hand orange   100  time
-       --, hand charcoal 100 (time/60)
-       , arrow (rgb 86 137 202) radius  (t/86400) 3 30
-       , label  (radius+15) (360 * t/86400) <| timeAt (360 * t/86400)
-       ] ++ map drawNum [0..23]
+    factor = 1000
+    diff =  (floor <| a1*factor) - (floor <| a2*factor) -- convert to integers so we can perform modular arithmetic
+    pi' = floor <| pi*factor
+  in
+    (toFloat <| diff % (2*pi'))/factor
 
-scene date phi long tz time = maybe (plainText "oops, bad input")
-                                    (clock ((inSeconds time)+(toFloat tz)) (360 * (toFloat tz) / (24*60*60)) phi long)
-                                    (Date.read date)
+clock date lat long = 
+  let
+    get event = complement <| event date lat long
+    noon'         = Debug.watch "noon" <| get noon
+    dusk'         = Debug.watch "dusk" <| get astroDusk
+    nauticalDusk' = get nauticalDusk
+    civilDusk'    = get civilDusk
+    sunset'       = Debug.watch "sunset" <| get sunset
+    sunrise'      = Debug.watch "sunrise" <| get sunrise
+    dawn'         = get astroDawn
+  in
+    collage 500 500 <|
+      [ rotate noon' <| clockface (sunset'  &- noon') (dusk' &- noon') (nauticalDusk' &- noon') (civilDusk' &- noon')
+      , label radius sunset'  <| "sunset "  ++ timeAt sunset'
+      , label radius sunrise' <| "sunrise " ++ timeAt sunrise'
+      , label radius dusk'    <| "dusk "    ++ timeAt dusk'
+      , label radius dawn'    <| "dawn "    ++ timeAt dawn'
+      , label radius noon'    <| "noon "    ++ timeAt noon'
+      ] ++ List.map drawNum [0..23]
 
-port dateIn : Signal String
-port phiIn : Signal Float
-port longIn : Signal Float
-port tzOffsetIn : Signal Int
+--
 
-main = scene <~ dateIn ~ phiIn ~ longIn ~ tzOffsetIn ~ (every second)
+times date lat long = List.map (\f -> (f date lat long))
+                  [astroDawn, sunrise, noon, sunset, astroDusk]
+
+timesDiv date lat long =
+  div []
+      <| List.map (\time -> div [] [ text (toString (time*180/pi)) ]) (times date lat long)
+
+page datestr latstr longstr =
+  let
+    lat = String.toFloat latstr
+    long = String.toFloat longstr
+    date = Date.fromString datestr
+  in
+    div []
+    -- TODO colour fields red when they have invalid input
+    ( [ input [ id "lat"
+          , value latstr
+          , name "lat"
+          , type' "number"
+          , on "input" targetValue (Signal.send latc)
+          ]
+          []
+      , input [ id "long"
+          , value longstr
+          , name "long"
+          , type' "number"
+          , on "input" targetValue (Signal.send longc)
+          ]
+          []
+      , input [ id "date"
+          , value datestr
+          , name "date"
+          , type' "date"
+          , on "input" targetValue (Signal.send datec)
+          ]
+          []
+      ]
+    ++
+      case (date, lat, long) of
+        (Ok x, Ok y, Ok z) -> [ timesDiv x y z, fromElement <| clock x y z ]
+        otherwise -> [ p [] [ text "bad input :(" ] ]
+    )
+
+latc = Signal.channel "51.51"
+longc = Signal.channel "0"
+datec = Signal.channel "2014-12-01"
+
+main = page <~ (Signal.subscribe datec) ~ (Signal.subscribe latc) ~ (Signal.subscribe longc)
+
+-- model ought to be (lat, long, date, tz)

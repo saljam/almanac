@@ -34,7 +34,7 @@ Elm.Almanac.make = function (_elm) {
       return typeof v === "number" ? v : _U.badPort("a number",
       v);
    }));
-   var datec = $Signal.channel("2014-12-01");
+   var datec = $Signal.channel("1989-12-15");
    _op["&-"] = F2(function (a1,
    a2) {
       return function () {

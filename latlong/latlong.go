@@ -20,7 +20,7 @@ limitations under the License.
 // to an internal form optimized for low memory overhead and fast lookups
 // at the expense of perfect accuracy when close to borders. The data files
 // are compiled in to this package and do not require explicit loading.
-package latlong
+package main
 
 import (
 	"bufio"

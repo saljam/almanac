@@ -1,5 +1,3 @@
-// +build latlong_gen
-
 /*
 Copyright 2014 Google Inc.
 
@@ -16,58 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package latlong
+package main
 
 import (
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"encoding/base64"
 	"encoding/binary"
-	"flag"
+	"encoding/json"
 	"fmt"
 	"hash/crc32"
 	"image"
 	"image/color"
-	"image/png"
 	"io/ioutil"
 	"log"
-	"os"
 	"sort"
-	"testing"
+	"strconv"
 	"time"
 
 	"code.google.com/p/freetype-go/freetype/raster"
 	"github.com/jonas-p/go-shp"
+	"github.com/rminnich/initramfs/go/src/pkg/text/template"
 )
 
-var (
-	flagGenerate   = flag.Bool("generate", false, "Do generation")
-	flagWriteImage = flag.Bool("write_image", false, "Write out a debug image")
-	flagScale      = flag.Float64("scale", 32, "Scaling factor. This many pixels wide & tall per degree (e.g. scale 1 is 360 x 180). Increasingly this code assumes a scale of 32, though.")
-)
-
-func saveToPNGFile(filePath string, m image.Image) {
-	log.Printf("Encoding image %s ...", filePath)
-	f, err := os.Create(filePath)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	defer f.Close()
-	b := bufio.NewWriter(f)
-	err = png.Encode(b, m)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	err = b.Flush()
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	fmt.Printf("Wrote %s OK.\n", filePath)
-}
+const scale = 32 // Scaling factor. This many pixels wide & tall per degree (e.g. scale 1 is 360 x 180).
 
 func cloneImage(i *image.RGBA) *image.RGBA {
 	i2 := new(image.RGBA)
@@ -77,24 +46,10 @@ func cloneImage(i *image.RGBA) *image.RGBA {
 	return i2
 }
 
-func loadImage(filename string) *image.NRGBA {
-	f, err := os.Open(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	im, _, err := image.Decode(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return im.(*image.NRGBA)
-}
-
 const alphaErased = 22 // magic alpha value to mean tile's been erased
 
 // the returned zoneOfColor always has A == 256.
-func worldImage(t *testing.T) (im *image.RGBA, zoneOfColor map[color.RGBA]string) {
-	scale := *flagScale
+func worldImage() (im *image.RGBA, zoneOfColor map[color.RGBA]string) {
 	width := int(scale * 360)
 	height := int(scale * 180)
 
@@ -116,7 +71,7 @@ func worldImage(t *testing.T) (im *image.RGBA, zoneOfColor map[color.RGBA]string
 
 	sr, err := shp.Open("world/tz_world.shp")
 	if err != nil {
-		t.Fatalf("Error opening world/tz_world.shp: %v; unzip it from http://efele.net/maps/tz/world/tz_world.zip", err)
+		log.Fatalf("Error opening world/tz_world.shp: %v; unzip it from http://efele.net/maps/tz/world/tz_world.zip", err)
 	}
 	defer sr.Close()
 
@@ -124,14 +79,14 @@ func worldImage(t *testing.T) (im *image.RGBA, zoneOfColor map[color.RGBA]string
 		i, s := sr.Shape()
 		p, ok := s.(*shp.Polygon)
 		if !ok {
-			t.Fatalf("Unknown shape %T", p)
+			log.Fatalf("Unknown shape %T", p)
 		}
 		zoneName := sr.ReadAttribute(i, 0)
 		if zoneName == "uninhabited" {
 			continue
 		}
 		if _, err := time.LoadLocation(zoneName); err != nil {
-			t.Fatalf("Failed to load: %v (%v)", zoneName, err)
+			log.Fatalf("Failed to load: %v (%v)", zoneName, err)
 		}
 		hash := crc32.Checksum([]byte(zoneName), tab)
 		col := color.RGBA{uint8(hash >> 24), uint8(hash >> 16), uint8(hash >> 8), 255}
@@ -204,22 +159,16 @@ func (s *setIndexTracker) Add(v interface{}) (idx uint16, isNew bool) {
 	return idx, true
 }
 
-func TestGenerate(t *testing.T) {
-	if !*flagGenerate {
-		t.Skip("skipping generationg without --generate flag")
+func main() {
+	im, zoneOfColor := worldImage()
+	export := struct {
+		ZoomLevels map[string]string
+		Leafs      string
+	}{
+		ZoomLevels: map[string]string{},
 	}
 
-	im, zoneOfColor := worldImage(t)
-
-	// The auto-generated source file (z_gen_tables.go)
-	var gen bytes.Buffer
-	gen.WriteString("// Auto-generated file. See README or Makefile.\n\npackage latlong\n\n")
-	gen.WriteString("func init() {\n")
-
-	fmt.Fprintf(&gen, "degPixels = %d\n", int(*flagScale))
-
-	// Source code for just the zoneLookers variables.
-	var zoneLookers zoneLookerWriter
+	var zoneLookers zoneLookerWriter // for the Leafs
 
 	// Maps from a unique key (either a string or colorTile) to
 	// its index.
@@ -231,7 +180,7 @@ func TestGenerate(t *testing.T) {
 		}
 		idx, ok := zoneIndex.Lookup(zoneOfColor[c])
 		if !ok {
-			t.Fatalf("failed to find zone index for color %+v", c)
+			log.Fatalf("failed to find zone index for color %+v", c)
 		}
 		return idx
 	}
@@ -256,18 +205,12 @@ func TestGenerate(t *testing.T) {
 		log.Printf("Num zones = %d", len(zones))
 	}
 
-	var imo *image.RGBA
-	if *flagWriteImage {
-		imo = cloneImage(im)
-	}
 	dupColorTiles := 0
 
-	gen.WriteString("zoomLevels = [6]*zoomLevel{\n")
 	for _, sizeShift := range []uint8{5, 4, 3, 2, 1, 0} {
-		fmt.Fprintf(&gen, "\t%d: &zoomLevel{\n", sizeShift)
 		var keyIdxBuf bytes.Buffer // repeated binary [tilekey][uint16_idx]
 
-		pass := newSizePass(im, imo, sizeShift)
+		pass := newSizePass(im, nil, sizeShift)
 
 		skipSquares := 0
 		sizeCount := map[int]int{} // num colors -> count
@@ -315,33 +258,29 @@ func TestGenerate(t *testing.T) {
 		})
 		log.Printf("For size %d, skipped %d, dist: %+v", pass.size, skipSquares, sizeCount)
 
-		var zbuf bytes.Buffer
-		zw := gzip.NewWriter(&zbuf)
-		zw.Write(keyIdxBuf.Bytes())
-		zw.Close()
+		export.ZoomLevels[strconv.Itoa(int(sizeShift))] = base64.StdEncoding.EncodeToString(keyIdxBuf.Bytes())
 
-		if err := ioutil.WriteFile(fmt.Sprintf("zoom%d.dat", sizeShift), keyIdxBuf.Bytes(), 0644); err != nil {
-			t.Fatal(err)
-		}
-	
-		log.Printf("size %d is %d entries: %d bytes (%d bytes compressed)", pass.size, keyIdxBuf.Len()/6, keyIdxBuf.Len(), zbuf.Len())
-
-		fmt.Fprintf(&gen, "\t\tgzipData: %q,\n", base64.StdEncoding.EncodeToString(zbuf.Bytes()))
-		gen.WriteString("\t},\n")
+		log.Printf("size %d is %d entries: %d bytes", pass.size, keyIdxBuf.Len()/6, keyIdxBuf.Len())
 	}
-	gen.WriteString("}\n\n")
 
 	log.Printf("Duplicate 8x8 pixmaps: %d", dupColorTiles)
 
-	if imo != nil {
-		saveToPNGFile("regions.png", imo)
+	export.Leafs = base64.StdEncoding.EncodeToString(zoneLookers.unbuf.Bytes())
+	exportJSON, err := json.Marshal(export)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	gen.Write(zoneLookers.Source())
-	gen.WriteString("}\n") // close init
-	
-	if err := ioutil.WriteFile("leafs.dat", zoneLookers.unbuf.Bytes(), 0644); err != nil {
-		t.Fatal(err)
+	t, err := template.ParseFiles("latlong.js.tmpl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var gen bytes.Buffer
+	if err := t.Execute(&gen, string(exportJSON)); err != nil {
+		log.Fatal(err)
+	}
+	if err := ioutil.WriteFile("latlong.js", gen.Bytes(), 0644); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -592,18 +531,4 @@ func (w *zoneLookerWriter) Add(s string) {
 	default:
 		panic("unexpected type")
 	}
-}
-
-func (w *zoneLookerWriter) Source() []byte {
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-	zw.Write(w.unbuf.Bytes())
-	zw.Close()
-
-	bstr := base64.StdEncoding.EncodeToString(buf.Bytes())
-	buf.Reset()
-	fmt.Fprintf(&buf, "leaf = make([]zoneLooker, %d)\n", w.n)
-	fmt.Fprintf(&buf, "uniqueLeavesPacked = %q\n", bstr)
-	log.Printf("zone lookers packed line = %d bytes", buf.Len())
-	return buf.Bytes()
 }

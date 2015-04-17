@@ -20,6 +20,7 @@ Elm.Almanac.make = function (_elm) {
    $Html$Attributes = Elm.Html.Attributes.make(_elm),
    $Html$Events = Elm.Html.Events.make(_elm),
    $List = Elm.List.make(_elm),
+   $Native$Timezone = Elm.Native.Timezone.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm),
    $Text = Elm.Text.make(_elm);
@@ -34,8 +35,6 @@ Elm.Almanac.make = function (_elm) {
       v);
    }));
    var datec = $Signal.channel("2014-12-01");
-   var longc = $Signal.channel("0");
-   var latc = $Signal.channel("51.51");
    _op["&-"] = F2(function (a1,
    a2) {
       return function () {
@@ -244,7 +243,7 @@ Elm.Almanac.make = function (_elm) {
                case "Oct": return 7;
                case "Sep": return 6;}
             _U.badCase($moduleName,
-            "between lines 24 and 37");
+            "between lines 27 and 40");
          }();
          return $Date.day(d) + ((153 * m + 2) / 5 | 0) + 365 * y + (y / 4 | 0) - (y / 100 | 0) + (y / 400 | 0) - 32045;
       }();
@@ -260,7 +259,7 @@ Elm.Almanac.make = function (_elm) {
             {case "Evening": return -1;
                case "Morning": return 1;}
             _U.badCase($moduleName,
-            "between lines 82 and 85");
+            "between lines 85 and 88");
          }();
          var middayEstimate = $Basics.pi;
          return A4(sunEqn,
@@ -330,15 +329,20 @@ Elm.Almanac.make = function (_elm) {
    var civilDusk = A2(timeAtSunAngle,
    Evening,
    -6);
-   var clock = F3(function (date,
+   var clock = F4(function (date,
    lat,
-   $long) {
+   $long,
+   tz) {
       return function () {
+         var offset = A2($Native$Timezone.offset,
+         date,
+         tz);
+         var offsetAngle = $Basics.turns(offset / (24 * 60));
          var get = function (event) {
             return complement(A3(event,
             date,
             lat,
-            $long));
+            $long)) - offsetAngle;
          };
          var noon$ = $Debug.watch("noon")(get(noon));
          var dusk$ = $Debug.watch("dusk")(get(astroDusk));
@@ -391,16 +395,20 @@ Elm.Almanac.make = function (_elm) {
    lat,
    $long) {
       return function () {
+         var tz = A2($Native$Timezone.latlong,
+         lat,
+         $long);
          var date = $Date.fromString(datestr);
          return A2($Html.div,
          _L.fromArray([]),
          _L.fromArray([function () {
                          switch (date.ctor)
                          {case "Ok":
-                            return $Html.fromElement(A3(clock,
+                            return $Html.fromElement(A4(clock,
                               date._0,
                               lat,
-                              $long));}
+                              $long,
+                              tz));}
                          return A2($Html.p,
                          _L.fromArray([]),
                          _L.fromArray([$Html.text("bad date :-/")]));
@@ -415,6 +423,9 @@ Elm.Almanac.make = function (_elm) {
                                    $Html$Events.targetValue,
                                    $Signal.send(datec))]),
                       _L.fromArray([]))
+                      ,A2($Html.div,
+                      _L.fromArray([]),
+                      _L.fromArray([$Html.text(tz)]))
                       ,A2($Html.div,
                       _L.fromArray([$Html$Attributes.id("map")
                                    ,$Html$Attributes.style(_L.fromArray([{ctor: "_Tuple2"
@@ -475,8 +486,6 @@ Elm.Almanac.make = function (_elm) {
                          ,times: times
                          ,timesDiv: timesDiv
                          ,page: page
-                         ,latc: latc
-                         ,longc: longc
                          ,datec: datec
                          ,main: main};
    return _elm.Almanac.values;
@@ -8913,6 +8922,24 @@ Elm.Native.Time.make = function(elm) {
       read   : read
   };
 
+};
+
+Elm.Native = Elm.Native || {};
+Elm.Native.Timezone = Elm.Native.Timezone || {};
+
+Elm.Native.Timezone.make = function(localRuntime) {
+    'use strict';
+
+    localRuntime.Native = localRuntime.Native || {};
+    localRuntime.Native.Timezone = localRuntime.Native.Timezone || {};
+    if ('values' in localRuntime.Native.Timezone) {
+        return localRuntime.Native.Timezone.values;
+    }
+	
+    return localRuntime.Native.Timezone.values = {
+        latlong: F2( latlong.lookup ),
+        offset: F2( function (date, tz) { return moment.tz(date, tz)._offset; } )
+    };
 };
 
 Elm.Native.Transform2D = {};

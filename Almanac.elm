@@ -14,9 +14,12 @@ import Result
 import Date
 
 import Graphics.Collage (..)
+import Graphics.Element
 import Time
 import Color (..)
 import Text
+
+import Native.Timezone
 
 -- gregorian -> julian day
 julian d =
@@ -172,9 +175,11 @@ clockface sunset dusk nauticalDusk civilDusk = group <|
   in
     (toFloat <| diff % (2*pi'))/factor
 
-clock date lat long = 
+clock date lat long tz = 
   let
-    get event = complement <| event date lat long
+    offset = Native.Timezone.offset date tz
+    offsetAngle = turns <| offset/(24*60)
+    get event = (complement <| event date lat long) - offsetAngle
     noon'         = Debug.watch "noon" <| get noon
     dusk'         = Debug.watch "dusk" <| get astroDusk
     nauticalDusk' = get nauticalDusk
@@ -204,10 +209,11 @@ timesDiv date lat long =
 page datestr lat long =
   let
     date = Date.fromString datestr
+    tz     = Native.Timezone.latlong lat long
   in
     div []
       [ case date of
-          Ok d      -> fromElement <| clock d lat long
+          Ok d      -> fromElement <| clock d lat long tz
           otherwise -> p [] [ text "bad date :-/" ]
       , input [ id "date" -- TODO colour fields red when they have invalid input
               , value datestr
@@ -215,13 +221,14 @@ page datestr lat long =
               , type' "date"
               , on "input" targetValue (Signal.send datec)
               ] []
+      , div [] [ text tz ]
       , div [ id "map", style [ ("width", "500px"), ("height", "500px") ] ] []
       , footer [] [ a [ href "https://github.com/saljam/almanac" ] [ text "source" ]
                   , text " <3"
                   ]
       ]
 
-datec = Signal.channel "2014-12-01"
+datec = Signal.channel "1989-12-15"
 
 port latIn : Signal.Signal Float
 port longIn : Signal.Signal Float

@@ -1,3 +1,7 @@
 This is the JavaScript version of github.com/bradfitz/latlong
 
-See https://plus.google.com/u/0/+BradFitzpatrick/posts/XVyy1bAzkZd for some background.
+The Go code in this directory generates the javascript file with the
+timezone location completely data embedded. To generate it again run
+`make`.
+
+See https://plus.google.com/u/0/+BradFitzpatrick/posts/XVyy1bAzkZd for some background on the original Go version.

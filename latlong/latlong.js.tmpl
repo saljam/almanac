@@ -67,7 +67,11 @@ var latlong = (function () {
 		if (this.pixmap[y&7] & (1<<(x&7)) !== 0) {
 			idx = this.index1;
 		}
-		return leafs[idx].lookup(x, y, tk);
+		leaf = leafs[idx];
+		if (leaf === undefined) {
+			return undefined;
+		}
+		return leaf.lookup(x, y, tk);
 	};
 	OneBitTile.Header = "2".charCodeAt(0);
 
@@ -78,11 +82,16 @@ var latlong = (function () {
 		var xx = x & 7,
 			yy = y & 7,
 			i = yy*8 + xx,
-			idx = this.pixmap[i];
+			idx = this.pixmap[i],
+			leaf;
 		if (idx === OCEAN) {
 			return "";
 		}
-		return leafs[idx].lookup(x, y, tk);
+		leaf = leafs[idx];
+		if (leaf === undefined) {
+			return undefined;
+		}
+		return leaf.lookup(x, y, tk);
 	};
 	Pixmap.Header = "P".charCodeAt(0);
 

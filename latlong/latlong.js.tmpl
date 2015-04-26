@@ -42,11 +42,10 @@ var latlong = (function () {
 
 	function ZoomLevel() {}
 	ZoomLevel.prototype.lookup = function(x, y, tk) {
-		var idx = this[tk]
-		if (idx === undefined) {
+		if (!this.hasOwnProperty(tk)) {
 			return undefined;
 		}
-		return leafs[idx].lookup(x, y, tk);
+		return leafs[this[tk]].lookup(x, y, tk);
 	};
 
 	function StaticZone(bytes) {
@@ -67,11 +66,10 @@ var latlong = (function () {
 		if (this.pixmap[y&7] & (1<<(x&7)) !== 0) {
 			idx = this.index1;
 		}
-		leaf = leafs[idx];
-		if (leaf === undefined) {
+		if (!leafs.hasOwnProperty(idx)) {
 			return undefined;
 		}
-		return leaf.lookup(x, y, tk);
+		return leafs[idx].lookup(x, y, tk);
 	};
 	OneBitTile.Header = "2".charCodeAt(0);
 
@@ -87,11 +85,10 @@ var latlong = (function () {
 		if (idx === OCEAN) {
 			return "";
 		}
-		leaf = leafs[idx];
-		if (leaf === undefined) {
+		if (!leafs.hasOwnProperty(idx)) {
 			return undefined;
 		}
-		return leaf.lookup(x, y, tk);
+		return leafs[idx].lookup(x, y, tk);
 	};
 	Pixmap.Header = "P".charCodeAt(0);
 

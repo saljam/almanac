@@ -299,30 +299,6 @@ Elm.Almanac.make = function (_elm) {
    var astroDusk = A2(timeAtSunAngle,
    Evening,
    -18);
-   var times = F3(function (date,
-   lat,
-   $long) {
-      return A2($List.map,
-      function (f) {
-         return A3(f,date,lat,$long);
-      },
-      _L.fromArray([astroDawn
-                   ,sunrise
-                   ,noon
-                   ,sunset
-                   ,astroDusk]));
-   });
-   var timesDiv = F3(function (date,
-   lat,
-   $long) {
-      return $Html.div(_L.fromArray([]))(A2($List.map,
-      function (time) {
-         return A2($Html.div,
-         _L.fromArray([]),
-         _L.fromArray([$Html.text($Basics.toString(time * 180 / $Basics.pi))]));
-      },
-      A3(times,date,lat,$long)));
-   });
    var nauticalDusk = A2(timeAtSunAngle,
    Evening,
    -12);
@@ -403,38 +379,42 @@ Elm.Almanac.make = function (_elm) {
          _L.fromArray([]),
          _L.fromArray([function () {
                          switch (date.ctor)
-                         {case "Ok":
-                            return $Html.fromElement(A4(clock,
+                         {case "Ok": return A2($Html.div,
+                              _L.fromArray([$Html$Attributes.$class("pane")]),
+                              _L.fromArray([$Html.fromElement(A4(clock,
                               date._0,
                               lat,
                               $long,
-                              tz));}
+                              tz))]));}
                          return A2($Html.p,
                          _L.fromArray([]),
                          _L.fromArray([$Html.text("bad date :-/")]));
                       }()
-                      ,A2($Html.input,
-                      _L.fromArray([$Html$Attributes.id("date")
-                                   ,$Html$Attributes.value(datestr)
-                                   ,$Html$Attributes.name("date")
-                                   ,$Html$Attributes.type$("date")
-                                   ,A3($Html$Events.on,
-                                   "input",
-                                   $Html$Events.targetValue,
-                                   $Signal.send(datec))]),
-                      _L.fromArray([]))
                       ,A2($Html.div,
-                      _L.fromArray([]),
-                      _L.fromArray([$Html.text(tz)]))
-                      ,A2($Html.div,
-                      _L.fromArray([$Html$Attributes.id("map")
-                                   ,$Html$Attributes.style(_L.fromArray([{ctor: "_Tuple2"
-                                                                         ,_0: "width"
-                                                                         ,_1: "500px"}
-                                                                        ,{ctor: "_Tuple2"
-                                                                         ,_0: "height"
-                                                                         ,_1: "500px"}]))]),
-                      _L.fromArray([]))
+                      _L.fromArray([$Html$Attributes.$class("pane")]),
+                      _L.fromArray([A2($Html.input,
+                                   _L.fromArray([$Html$Attributes.id("date")
+                                                ,$Html$Attributes.value(datestr)
+                                                ,$Html$Attributes.type$("date")
+                                                ,A3($Html$Events.on,
+                                                "input",
+                                                $Html$Events.targetValue,
+                                                $Signal.send(datec))]),
+                                   _L.fromArray([]))
+                                   ,A2($Html.p,
+                                   _L.fromArray([]),
+                                   _L.fromArray([$Html.text(A2($Basics._op["++"],
+                                   "Timezone: ",
+                                   tz))]))
+                                   ,A2($Html.div,
+                                   _L.fromArray([$Html$Attributes.id("map")
+                                                ,$Html$Attributes.style(_L.fromArray([{ctor: "_Tuple2"
+                                                                                      ,_0: "width"
+                                                                                      ,_1: "500px"}
+                                                                                     ,{ctor: "_Tuple2"
+                                                                                      ,_0: "height"
+                                                                                      ,_1: "500px"}]))]),
+                                   _L.fromArray([]))]))
                       ,A2($Html.footer,
                       _L.fromArray([]),
                       _L.fromArray([A2($Html.a,
@@ -483,8 +463,6 @@ Elm.Almanac.make = function (_elm) {
                          ,radius: radius
                          ,clockface: clockface
                          ,clock: clock
-                         ,times: times
-                         ,timesDiv: timesDiv
                          ,page: page
                          ,datec: datec
                          ,main: main};

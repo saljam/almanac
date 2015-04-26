@@ -199,30 +199,20 @@ clock date lat long tz =
 
 --
 
-times date lat long = List.map (\f -> (f date lat long))
-                  [astroDawn, sunrise, noon, sunset, astroDusk]
-
-timesDiv date lat long =
-  div []
-      <| List.map (\time -> div [] [ text (toString (time*180/pi)) ]) (times date lat long)
-
 page datestr lat long =
   let
     date = Date.fromString datestr
-    tz     = Native.Timezone.latlong lat long
+    tz   = Native.Timezone.latlong lat long
   in
     div []
       [ case date of
-          Ok d      -> fromElement <| clock d lat long tz
+          Ok d      -> div [ class "pane" ] [ fromElement <| clock d lat long tz ]
           otherwise -> p [] [ text "bad date :-/" ]
-      , input [ id "date" -- TODO colour fields red when they have invalid input
-              , value datestr
-              , name "date"
-              , type' "date"
-              , on "input" targetValue (Signal.send datec)
-              ] []
-      , div [] [ text tz ]
-      , div [ id "map", style [ ("width", "500px"), ("height", "500px") ] ] []
+      , div [ class "pane" ] -- TODO colour fields red when they have invalid input
+        [ input [ id "date", value datestr, type' "date", on "input" targetValue (Signal.send datec) ] []
+        , p [] [ text ("Timezone: " ++ tz) ]
+        , div [ id "map", style [ ("width", "500px"), ("height", "500px") ] ] []
+        ]
       , footer [] [ a [ href "https://github.com/saljam/almanac" ] [ text "source" ]
                   , text " <3"
                   ]

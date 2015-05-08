@@ -205,15 +205,15 @@ page datestr lat long =
     tz   = Native.Timezone.latlong lat long
   in
     div []
-      [ case date of
-          Ok d      -> div [ class "pane" ] [ fromElement <| clock d lat long tz ]
-          otherwise -> p [] [ text "bad date :-/" ]
-      , div [ class "pane" ] -- TODO colour fields red when they have invalid input
+      [ div [ id "map" ] []
+      , div [ id "form", class "overlay" ]
         [ input [ id "date", value datestr, type' "date", on "input" targetValue (Signal.send datec) ] []
         , p [] [ text ("Timezone: " ++ tz) ]
-        , div [ id "map", style [ ("width", "500px"), ("height", "500px") ] ] []
+        , case date of
+          Ok d      -> div [ id "clock" ] [ fromElement <| clock d lat long tz ]
+          otherwise -> p [] [ text "bad date :-/" ]
         ]
-      , footer [] [ a [ href "https://github.com/saljam/almanac" ] [ text "source" ]
+      , footer [ class "overlay" ] [ a [ href "https://github.com/saljam/almanac" ] [ text "source" ]
                   , text " <3"
                   ]
       ]

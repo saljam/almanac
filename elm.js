@@ -377,21 +377,12 @@ Elm.Almanac.make = function (_elm) {
          var date = $Date.fromString(datestr);
          return A2($Html.div,
          _L.fromArray([]),
-         _L.fromArray([function () {
-                         switch (date.ctor)
-                         {case "Ok": return A2($Html.div,
-                              _L.fromArray([$Html$Attributes.$class("pane")]),
-                              _L.fromArray([$Html.fromElement(A4(clock,
-                              date._0,
-                              lat,
-                              $long,
-                              tz))]));}
-                         return A2($Html.p,
-                         _L.fromArray([]),
-                         _L.fromArray([$Html.text("bad date :-/")]));
-                      }()
+         _L.fromArray([A2($Html.div,
+                      _L.fromArray([$Html$Attributes.id("map")]),
+                      _L.fromArray([]))
                       ,A2($Html.div,
-                      _L.fromArray([$Html$Attributes.$class("pane")]),
+                      _L.fromArray([$Html$Attributes.id("form")
+                                   ,$Html$Attributes.$class("overlay")]),
                       _L.fromArray([A2($Html.input,
                                    _L.fromArray([$Html$Attributes.id("date")
                                                 ,$Html$Attributes.value(datestr)
@@ -406,17 +397,21 @@ Elm.Almanac.make = function (_elm) {
                                    _L.fromArray([$Html.text(A2($Basics._op["++"],
                                    "Timezone: ",
                                    tz))]))
-                                   ,A2($Html.div,
-                                   _L.fromArray([$Html$Attributes.id("map")
-                                                ,$Html$Attributes.style(_L.fromArray([{ctor: "_Tuple2"
-                                                                                      ,_0: "width"
-                                                                                      ,_1: "500px"}
-                                                                                     ,{ctor: "_Tuple2"
-                                                                                      ,_0: "height"
-                                                                                      ,_1: "500px"}]))]),
-                                   _L.fromArray([]))]))
+                                   ,function () {
+                                      switch (date.ctor)
+                                      {case "Ok": return A2($Html.div,
+                                           _L.fromArray([$Html$Attributes.id("clock")]),
+                                           _L.fromArray([$Html.fromElement(A4(clock,
+                                           date._0,
+                                           lat,
+                                           $long,
+                                           tz))]));}
+                                      return A2($Html.p,
+                                      _L.fromArray([]),
+                                      _L.fromArray([$Html.text("bad date :-/")]));
+                                   }()]))
                       ,A2($Html.footer,
-                      _L.fromArray([]),
+                      _L.fromArray([$Html$Attributes.$class("overlay")]),
                       _L.fromArray([A2($Html.a,
                                    _L.fromArray([$Html$Attributes.href("https://github.com/saljam/almanac")]),
                                    _L.fromArray([$Html.text("source")]))

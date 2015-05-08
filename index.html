@@ -9,6 +9,9 @@
 <script src='https://api.tiles.mapbox.com/mapbox.js/v1.6.4/mapbox.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox.js/v1.6.4/mapbox.css' rel='stylesheet' />
 <style type="text/css">
+body {
+	margin: 0;
+}
 pre, kbd, samp, code, var, .mono {
         font: small Inconsolata, monospace;
         word-spacing: 0;
@@ -42,19 +45,25 @@ h3 {
 footer {
         font-size: small;
         text-align: center;
-	margin: 2em;
+	padding: 3px;
+	left: 0px;
+	bottom: 0px;
 }
-label {
+.overlay {
+	position: absolute;
+	background-color: rgba(255,255,255,0.6);
+}
+#form {
+	right: 0px;
+	top: 0px;
+}
+#map {
+	width: 100%;
+	height: 100%;
+}
+#form>p, #form>input {
         display: inline-block;
-        text-align: right;
-        font-variant: small-caps;
-        margin: 0.5em;
-}
-.pane, .pane>p {
-        display: inline-block;
-}
-.pane>p {
-	margin: 0.5em 1em;
+	margin: 0.5em 0.5em;
 }
 </style>
 <body>
